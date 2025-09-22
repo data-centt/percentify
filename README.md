@@ -13,7 +13,7 @@ A ridiculously tiny Python library for turning *"part of a whole"* into neat per
 
 ---
 
-## 📦 Installation
+## 📦 Installation and Use Case
 
 ```bash
 pip install percentify
