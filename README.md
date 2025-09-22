@@ -17,3 +17,8 @@ A ridiculously tiny Python library for turning *"part of a whole"* into neat per
 
 ```bash
 pip install percentify
+
+## 🤩 Idea
+ Simply find the percentage of a number in another number.
+ 15 of 30 is 50%
+ so percent(15, 30) == 50%
