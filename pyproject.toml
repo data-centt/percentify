@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "percentify"
 version = "0.1.0"
 description = "A micro-library to easily calculate percentage between two numbers."
-authors = [{ name = "Daniel Emakkporuena", email = "danielemakporuena1@gmail.com" }]
+authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.7"
