@@ -1,4 +1,4 @@
-# 📊 Percentify
+#                                               📊![CountdownCountingGIF](https://github.com/user-attachments/assets/f5564d76-67d1-495f-8c47-a56115adc9db)Percentify
 
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
