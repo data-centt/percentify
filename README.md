@@ -55,7 +55,7 @@ That’s it. Clean, safe, and ready to use anywhere you need percentages in your
 # 🤝 Contributing
 
 Contributions are welcome!
-- If you have an idea (extra helpers, bug fixes, or better docs):
+- If you have an idea (extra helpers, bug fixes or an idea):
 - Fork this repo
 - Create a branch
 - Commit your changes
