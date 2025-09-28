@@ -10,6 +10,7 @@ def percent(part: float, whole: float, decimals: int | None = 2) -> float:
 
     Returns:
         float: Percentage value.
+        
     """
     if whole == 0:
         return 0.0
