@@ -13,6 +13,6 @@ def percent(part: float, whole: float, decimals: int | None = 2) -> float:
         
     """
     if whole == 0:
-        return 0.0
+        raise ValueError("whole cannot be zero.")
     value = (part / whole) * 100
     return round(value, decimals) if decimals is not None else value
