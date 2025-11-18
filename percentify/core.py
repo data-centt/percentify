@@ -1,18 +1,28 @@
-def percent(part: float, whole: float, decimals: int | None = 2) -> float:
+from typing import SupportsFloat
+
+def percent(part: SupportsFloat, whole: SupportsFloat, decimals: int | None = 2) -> float:
     """
-    Easily calculate what percentage `part` is of the `whole`.
+    Calculate what percentage `part` is of the `whole`.
 
     Args:
-        part (float): The numerator.
-        whole (float): The denominator.
-        decimals (int | None): Number of decimal places to round.
-            If None, no rounding is applied.
+        part: The numerator.
+        whole: The denominator.
+        decimals: Number of decimal places to round to.
+            If None, the raw percentage (unrounded float) is returned.
 
     Returns:
-        float: Percentage value.
-        
+        float: Percentage value. If `whole` is 0, returns 0.0.
     """
+    whole = float(whole)
     if whole == 0:
-        raise ValueError("whole cannot be zero.")
-    value = (part / whole) * 100
-    return round(value, decimals) if decimals is not None else value
+        return 0.0
+
+    value = float(part) / whole * 100.0
+
+    if decimals is None:
+        return value
+
+    if decimals < 0:
+        raise ValueError("`decimals` must be non-negative or None.")
+
+    return round(value, decimals)
