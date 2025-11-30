@@ -43,7 +43,7 @@ percent(7, 9, 4)          # → 77.7778
 
 ### 🛠️ How It Works
 
-The library is intentionally simple — just one function:
+The library is intentionally simple;
 ```
 def percent(part: float, whole: float, decimals: int = 2) -> float:
     if whole == 0:
