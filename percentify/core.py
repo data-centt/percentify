@@ -1,6 +1,6 @@
-from typing import SupportsFloat
+from typing import SupportsFloat, Optional
 
-def percent(part: SupportsFloat, whole: SupportsFloat, decimals: int | None = 2) -> float:
+def percent(part: SupportsFloat, whole: SupportsFloat, decimals: Optional[int] = 2) -> float:
     """
     Calculate what percentage `part` is of the `whole`.
 
