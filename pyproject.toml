@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "percentify"
-version = "0.1.3"
+version = "0.1.4"
 description = "A micro-library to easily calculate percentage between two numbers."
 authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
