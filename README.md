@@ -16,7 +16,7 @@ Percentify gives you a single function:
 
 - Calculates what percentage one number is of another.
 - Handles divide-by-zero safely (returns 0.0 instead of crashing).
-- Lets you choose how many decimal places to round to.
+- Lets you choose how many decimal places you want to round your answer to.
 - Has zero dependencies — just pure Python.
 
 ## 📦 Installation
