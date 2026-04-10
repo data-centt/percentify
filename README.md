@@ -12,9 +12,9 @@ Stop typing `(part / whole) * 100` and worrying about division by zero.
 
 ## ✨ What It Does
 
-A tiny, zero-dependency Python toolkit for all things percentages:
+A zero-dependency Python toolkit for all things percentages:
 
-<<<<<<< HEAD
+
 - **`percent`** — what percentage is `part` of `whole`?
 - **`percent_change`** — how much did a value increase or decrease?
 - **`percent_diff`** — how far apart are two values?
@@ -27,7 +27,7 @@ All functions handle edge cases (division by zero, negative values) safely and l
 - Handles divide-by-zero safely (returns 0.0 instead of crashing).
 - Lets you choose how many decimal places you want to round your answer to.
 - Has zero dependencies — just pure Python.
->>>>>>> f3187f75a952d766e7b76d18709e01138fed42d9
+
 
 ## 📦 Installation
 ```
