@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "percentify"
 version = "0.2.1"
-description = "A tiny, zero-dependency Python toolkit for percentages — calculate, compare, format, and distribute."
+description = "A zero-dependency Python toolkit for percentages — calculate, compare, format, and distribute."
 authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
 license = { text = "Apache-2.0" }
