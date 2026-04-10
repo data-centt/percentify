@@ -12,45 +12,66 @@ Stop typing `(part / whole) * 100` and worrying about division by zero.
 
 ## ✨ What It Does
 
-Percentify gives you a single function:
+A tiny, zero-dependency Python toolkit for all things percentages:
 
-- Calculates what percentage one number is of another.
-- Handles divide-by-zero safely (returns 0.0 instead of crashing).
-- Lets you choose how many decimal places to round to.
-- Has zero dependencies — just pure Python.
+- **`percent`** — what percentage is `part` of `whole`?
+- **`percent_change`** — how much did a value increase or decrease?
+- **`percent_diff`** — how far apart are two values?
+- **`percent_distribute`** — split a total into weighted shares.
+- **`percent_format`** — turn any number into a clean `"25.0%"` string.
+
+All functions handle edge cases (division by zero, negative values) safely and let you control decimal precision.
 
 ## 📦 Installation
 ```
 pip install percentify
 ```
 
-### Usage
-```
+## Usage
+
+### `percent` — Part of a Whole
+```python
 from percentify import percent
 
-# Basic usage
 percent(50, 200)          # → 25.0
-
-# Handles fractions
 percent(1, 3)             # → 33.33
-
-# Safe when dividing by zero
-percent(5, 0)             # → 0.0
-
-# Custom decimals
-percent(7, 9, 4)          # → 77.7778
+percent(5, 0)             # → 0.0  (safe division by zero)
+percent(7, 9, 4)          # → 77.7778  (custom decimals)
 ```
 
-### 🛠️ How It Works
+### `percent_change` — Increase or Decrease
+```python
+from percentify import percent_change
 
-The library is intentionally simple;
+percent_change(100, 150)  # → 50.0   (50% increase)
+percent_change(200, 150)  # → -25.0  (25% decrease)
+percent_change(0, 100)    # → 0.0    (safe when old is zero)
 ```
-def percent(part: float, whole: float, decimals: int = 2) -> float:
-    if whole == 0:
-        return 0.0
-    return round((part / whole) * 100, decimals)
+
+### `percent_diff` — Difference Between Two Values
+```python
+from percentify import percent_diff
+
+percent_diff(10, 20)      # → 66.67
+percent_diff(50, 50)      # → 0.0
 ```
-That’s it. Clean, safe, and ready to use anywhere you need percentages in your code.
+
+### `percent_distribute` — Split a Total by Weights
+```python
+from percentify import percent_distribute
+
+percent_distribute(200, [1, 3])       # → [50.0, 150.0]
+percent_distribute(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
+```
+
+### `percent_format` — Format as a String
+```python
+from percentify import percent_format
+
+percent_format(25.0)                  # → "25.0%"
+percent_format(33.3333, 1)            # → "33.3%"
+percent_format(50, suffix=" percent") # → "50.0 percent"
+```
 
 # 🤝 Contributing
 
