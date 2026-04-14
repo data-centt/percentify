@@ -89,4 +89,4 @@ Contributions are welcome!
 - Commit your changes
 - Open a pull request
 
-I try to keep it tiny on purpose, to discuss big new features first.
+I try to keep it compact on purpose, to discuss big new features first.
