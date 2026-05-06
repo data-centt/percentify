@@ -1,5 +1,5 @@
 import pytest
-from percentify import percent, percent_change, percent_diff, percent_distribute, percent_format
+from percentify import percent, change, difference, split, display
 
 
 # --- percent ---
@@ -24,83 +24,83 @@ def test_percent_negative_decimals():
         percent(1, 3, -1)
 
 
-# --- percent_change ---
+# --- change ---
 
-def test_percent_change_increase():
-    assert percent_change(100, 150) == 50.0
+def test_change_increase():
+    assert change(100, 150) == 50.0
 
-def test_percent_change_decrease():
-    assert percent_change(200, 150) == -25.0
+def test_change_decrease():
+    assert change(200, 150) == -25.0
 
-def test_percent_change_no_change():
-    assert percent_change(100, 100) == 0.0
+def test_change_no_change():
+    assert change(100, 100) == 0.0
 
-def test_percent_change_zero_old():
-    assert percent_change(0, 100) == 0.0
+def test_change_zero_old():
+    assert change(0, 100) == 0.0
 
-def test_percent_change_negative_old():
-    assert percent_change(-100, -50) == 50.0
+def test_change_negative_old():
+    assert change(-100, -50) == 50.0
 
-def test_percent_change_custom_decimals():
-    assert percent_change(3, 7, 4) == 133.3333
-
-
-# --- percent_diff ---
-
-def test_percent_diff_basic():
-    assert percent_diff(10, 20) == 66.67
-
-def test_percent_diff_same():
-    assert percent_diff(50, 50) == 0.0
-
-def test_percent_diff_both_zero():
-    assert percent_diff(0, 0) == 0.0
-
-def test_percent_diff_order_independent():
-    assert percent_diff(10, 20) == percent_diff(20, 10)
-
-def test_percent_diff_custom_decimals():
-    assert percent_diff(3, 7, 4) == 80.0
+def test_change_custom_decimals():
+    assert change(3, 7, 4) == 133.3333
 
 
-# --- percent_distribute ---
+# --- difference ---
 
-def test_distribute_equal():
-    assert percent_distribute(100, [1, 1, 1]) == [pytest.approx(33.33), pytest.approx(33.33), pytest.approx(33.33)]
+def test_difference_basic():
+    assert difference(10, 20) == 66.67
 
-def test_distribute_weighted():
-    assert percent_distribute(200, [1, 3]) == [50.0, 150.0]
+def test_difference_same():
+    assert difference(50, 50) == 0.0
 
-def test_distribute_single():
-    assert percent_distribute(100, [5]) == [100.0]
+def test_difference_both_zero():
+    assert difference(0, 0) == 0.0
 
-def test_distribute_empty():
+def test_difference_order_independent():
+    assert difference(10, 20) == difference(20, 10)
+
+def test_difference_custom_decimals():
+    assert difference(3, 7, 4) == 80.0
+
+
+# --- split ---
+
+def test_split_equal():
+    assert split(100, [1, 1, 1]) == [pytest.approx(33.33), pytest.approx(33.33), pytest.approx(33.33)]
+
+def test_split_weighted():
+    assert split(200, [1, 3]) == [50.0, 150.0]
+
+def test_split_single():
+    assert split(100, [5]) == [100.0]
+
+def test_split_empty():
     with pytest.raises(ValueError):
-        percent_distribute(100, [])
+        split(100, [])
 
-def test_distribute_zero_weights():
+def test_split_zero_weights():
     with pytest.raises(ValueError):
-        percent_distribute(100, [0, 0])
+        split(100, [0, 0])
 
-def test_distribute_custom_decimals():
-    result = percent_distribute(100, [1, 1, 1], 4)
+def test_split_custom_decimals():
+    result = split(100, [1, 1, 1], 4)
     assert result == [pytest.approx(33.3333), pytest.approx(33.3333), pytest.approx(33.3333)]
 
 
-# --- percent_format ---
+# --- display ---
 
-def test_format_basic():
-    assert percent_format(25.0) == "25.0%"
+def test_display_basic():
+    assert display(25.0) == "25.0%"
 
-def test_format_custom_decimals():
-    assert percent_format(33.3333, 1) == "33.3%"
+def test_display_custom_decimals():
+    assert display(33.3333, 1) == "33.3%"
 
-def test_format_custom_suffix():
-    assert percent_format(50, suffix=" percent") == "50.0 percent"
+def test_display_custom_suffix():
+    assert display(50, suffix=" percent") == "50.0 percent"
 
-def test_format_no_rounding():
-    result = percent_format(33.3333, None)
+def test_display_no_rounding():
+    result = display(33.3333, None)
     assert result == "33.3333%"
 
-def test_format_zero():
-    assert percent_format(0) == "0.0%"
+def test_display_zero():
+    assert display(0) == "0.0%"
