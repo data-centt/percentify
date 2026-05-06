@@ -30,7 +30,7 @@ def percent(part: SupportsFloat, whole: SupportsFloat, decimals: Optional[int] =
     return _round_value(value, decimals)
 
 
-def percent_change(old: SupportsFloat, new: SupportsFloat, decimals: Optional[int] = 2) -> float:
+def change(old: SupportsFloat, new: SupportsFloat, decimals: Optional[int] = 2) -> float:
     """
     Calculate the percentage change from `old` to `new`.
 
@@ -52,7 +52,7 @@ def percent_change(old: SupportsFloat, new: SupportsFloat, decimals: Optional[in
     return _round_value(value, decimals)
 
 
-def percent_diff(a: SupportsFloat, b: SupportsFloat, decimals: Optional[int] = 2) -> float:
+def difference(a: SupportsFloat, b: SupportsFloat, decimals: Optional[int] = 2) -> float:
     """
     Calculate the percentage difference between two values.
 
@@ -77,7 +77,7 @@ def percent_diff(a: SupportsFloat, b: SupportsFloat, decimals: Optional[int] = 2
     return _round_value(value, decimals)
 
 
-def percent_distribute(total: SupportsFloat, weights: List[SupportsFloat], decimals: Optional[int] = 2) -> List[float]:
+def split(total: SupportsFloat, weights: List[SupportsFloat], decimals: Optional[int] = 2) -> List[float]:
     """
     Distribute a total into percentage-based shares according to weights.
 
@@ -106,7 +106,7 @@ def percent_distribute(total: SupportsFloat, weights: List[SupportsFloat], decim
     return [_round_value(w / weight_sum * total, decimals) for w in float_weights]
 
 
-def percent_format(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%") -> str:
+def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%") -> str:
     """
     Format a numeric value as a percentage string.
 
