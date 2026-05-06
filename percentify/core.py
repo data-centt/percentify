@@ -11,7 +11,7 @@ def _round_value(value: float, decimals: Optional[int]) -> float:
 
 def percent(part: SupportsFloat, whole: SupportsFloat, decimals: Optional[int] = 2) -> float:
     """
-    Calculate what percentage `part` is of the `whole`.
+    Calculate what percentage as `part` is of the `whole`.
 
     Args:
         part: The numerator.
@@ -79,7 +79,7 @@ def difference(a: SupportsFloat, b: SupportsFloat, decimals: Optional[int] = 2) 
 
 def split(total: SupportsFloat, weights: List[SupportsFloat], decimals: Optional[int] = 2) -> List[float]:
     """
-    Distribute a total into percentage-based shares according to weights.
+    split a total into percentage-based shares according to weights.
 
     Args:
         total: The total value to distribute.
@@ -108,7 +108,7 @@ def split(total: SupportsFloat, weights: List[SupportsFloat], decimals: Optional
 
 def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%") -> str:
     """
-    Format a numeric value as a percentage string.
+    display takes a numeric value as a percentage string.
 
     Args:
         value: The percentage value to format.
