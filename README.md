@@ -16,17 +16,12 @@ A zero-dependency Python toolkit for all things percentages:
 
 
 - **`percent`** — what percentage is `part` of `whole`?
-- **`percent_change`** — how much did a value increase or decrease?
-- **`percent_diff`** — how far apart are two values?
-- **`percent_distribute`** — split a total into weighted shares.
-- **`percent_format`** — turn any number into a clean `"25.0%"` string.
+- **`change`** — how much did a value increase or decrease?
+- **`difference`** — how far apart are two values?
+- **`split`** — split a total into weighted shares.
+- **`display`** — turn any number into a clean `"25.0%"` string.
 
 All functions handle edge cases (division by zero, negative values) safely and let you control decimal precision.
-=======
-- Calculates what percentage one number is of another.
-- Handles divide-by-zero safely (returns 0.0 instead of crashing).
-- Lets you choose how many decimal places you want to round your answer to.
-- Has zero dependencies — just pure Python.
 
 
 ## 📦 Installation
@@ -46,38 +41,45 @@ percent(5, 0)             # → 0.0  (safe division by zero)
 percent(7, 9, 4)          # → 77.7778  (custom decimals)
 ```
 
-### `percent_change` — Increase or Decrease
+### `change` — Increase or Decrease
 ```python
-from percentify import percent_change
+from percentify import change
 
-percent_change(100, 150)  # → 50.0   (50% increase)
-percent_change(200, 150)  # → -25.0  (25% decrease)
-percent_change(0, 100)    # → 0.0    (safe when old is zero)
+change(100, 150)  # → 50.0   (50% increase)
+change(200, 150)  # → -25.0  (25% decrease)
+change(0, 100)    # → 0.0    (safe when old is zero)
 ```
 
-### `percent_diff` — Difference Between Two Values
+### `difference` — Difference Between Two Values
 ```python
-from percentify import percent_diff
+from percentify import difference
 
-percent_diff(10, 20)      # → 66.67
-percent_diff(50, 50)      # → 0.0
+difference(10, 20)      # → 66.67
+difference(50, 50)      # → 0.0
 ```
 
-### `percent_distribute` — Split a Total by Weights
+### `split` — Split a Total by Weights
 ```python
-from percentify import percent_distribute
+from percentify import split
 
-percent_distribute(200, [1, 3])       # → [50.0, 150.0]
-percent_distribute(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
+split(200, [1, 3])       # → [50.0, 150.0]
+split(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
 ```
 
-### `percent_format` — Format as a String
+### `display` — Format as a String
 ```python
-from percentify import percent_format
+from percentify import display
 
-percent_format(25.0)                  # → "25.0%"
-percent_format(33.3333, 1)            # → "33.3%"
-percent_format(50, suffix=" percent") # → "50.0 percent"
+display(25.0)                  # → "25.0%"
+display(33.3333, 1)            # → "33.3%"
+display(50, suffix=" percent") # → "50.0 percent"
+```
+
+### Composing Functions
+```python
+from percentify import change, display
+
+display(change(100, 20))  # → "-80.0%"
 ```
 
 # 🤝 Contributing
