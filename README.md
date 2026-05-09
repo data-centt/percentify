@@ -3,7 +3,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
-![GitHub Stars](https://img.shields.io/github/stars/data-centt/percentify?style=flat&color=yellow)
+![GitHub Stars](https://img.shields.io/github/stars/data-centt/percentify?style=flat&color=white)
 
 **Percentify** is a Python package that turns *"part of a whole"* into a clean percentage.  
 Stop typing `(part / whole) * 100` and worrying about division by zero.
