@@ -1,4 +1,4 @@
-from .core import percent
+from .core import percent, change, difference, split, display
 
-__all__ = ["percent"]
-__version__ = "0.1.3"
+__all__ = ["percent", "change", "difference", "split", "display"]
+__version__ = "0.3.1"

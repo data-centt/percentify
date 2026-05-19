@@ -1,56 +1,87 @@
 #                                              % Percentify %
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/percentify?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/percentify)
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
+![GitHub Stars](https://img.shields.io/github/stars/data-centt/percentify?style=flat&color=white)
 
-**Percentify** — a tiny Python helper that turns *"part of a whole"* into a clean percentage.  
+**Percentify** is a Python package that turns *"part of a whole"* into a clean percentage.  
 Stop typing `(part / whole) * 100` and worrying about division by zero.
 
 ---
 
 ## ✨ What It Does
 
-Percentify gives you a single function:
+A zero-dependency Python toolkit for all things percentages:
 
-- Calculates what percentage one number is of another.
-- Handles divide-by-zero safely (returns 0.0 instead of crashing).
-- Lets you choose how many decimal places to round to.
-- Has zero dependencies — just pure Python.
+
+- **`percent`** — what percentage is `part` of `whole`?
+- **`change`** — how much did a value increase or decrease?
+- **`difference`** — how far apart are two values?
+- **`split`** — split a total into weighted shares.
+- **`display`** — turn any number into a clean `"25.0%"` string.
+
+All functions handle edge cases (division by zero, negative values) safely and let you control decimal precision.
+
 
 ## 📦 Installation
 ```
 pip install percentify
 ```
 
-### Usage
-```
+## Usage
+
+### `percent` — Part of a Whole
+```python
 from percentify import percent
 
-# Basic usage
 percent(50, 200)          # → 25.0
-
-# Handles fractions
 percent(1, 3)             # → 33.33
-
-# Safe when dividing by zero
-percent(5, 0)             # → 0.0
-
-# Custom decimals
-percent(7, 9, 4)          # → 77.7778
+percent(5, 0)             # → 0.0  (safe division by zero)
+percent(7, 9, 4)          # → 77.7778  (custom decimals)
 ```
 
-### 🛠️ How It Works
+### `change` — Increase or Decrease
+```python
+from percentify import change
 
-The library is intentionally simple — just one function:
+change(100, 150)  # → 50.0   (50% increase)
+change(200, 150)  # → -25.0  (25% decrease)
+change(0, 100)    # → 0.0    (safe when old is zero)
 ```
-def percent(part: float, whole: float, decimals: int = 2) -> float:
-    if whole == 0:
-        return 0.0
-    return round((part / whole) * 100, decimals)
+
+### `difference` — Difference Between Two Values
+```python
+from percentify import difference
+
+difference(10, 20)      # → 66.67
+difference(50, 50)      # → 0.0
 ```
-That’s it. Clean, safe, and ready to use anywhere you need percentages in your code.
+
+### `split` — Split a Total by Weights
+```python
+from percentify import split
+
+split(200, [1, 3])       # → [50.0, 150.0]
+split(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
+```
+
+### `display` — Format as a String
+```python
+from percentify import display
+
+display(25.0)                         # → "25.0%"
+display(33.3333, 1)                   # → "33.3%"
+display(50, suffix=" percent")        # → "50.0 percent"
+display(0.45, multiply=True)          # → "45.0%"
+```
+
+### Composing Functions
+```python
+from percentify import change, display
+
+display(change(100, 20))  # → "-80.0%"
+```
 
 # 🤝 Contributing
 
@@ -61,4 +92,4 @@ Contributions are welcome!
 - Commit your changes
 - Open a pull request
 
-I try to keep it tiny on purpose, to discuss big new features first.
+I try to keep it within scope, to discuss big new features first.
