@@ -82,6 +82,10 @@ from percentify import change, display
 
 display(change(100, 20))  # → "-80.0%"
 ```
+### Example Use Case
+
+<img src="asset/testcase.jpeg" alt="Screenshot" width="400">
+
 
 # 🤝 Contributing
 
