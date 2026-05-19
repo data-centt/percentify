@@ -70,9 +70,10 @@ split(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
 ```python
 from percentify import display
 
-display(25.0)                  # → "25.0%"
-display(33.3333, 1)            # → "33.3%"
-display(50, suffix=" percent") # → "50.0 percent"
+display(25.0)                         # → "25.0%"
+display(33.3333, 1)                   # → "33.3%"
+display(50, suffix=" percent")        # → "50.0 percent"
+display(0.45, multiply=True)          # → "45.0%"
 ```
 
 ### Composing Functions

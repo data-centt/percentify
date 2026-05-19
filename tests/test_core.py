@@ -104,3 +104,12 @@ def test_display_no_rounding():
 
 def test_display_zero():
     assert display(0) == "0.0%"
+
+def test_display_multiply():
+    assert display(0.45, multiply=True) == "45.0%"
+
+def test_display_multiply_small():
+    assert display(0.0725, multiply=True) == "7.25%"
+
+def test_display_multiply_false():
+    assert display(0.45) == "0.45%"
