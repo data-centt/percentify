@@ -84,7 +84,6 @@ display(change(100, 20))  # → "-80.0%"
 ```
 ### Example Use Case
 
-![Test case screenshot](asset/testcase.jpeg)
 <img src="asset/testcase.jpeg" alt="Screenshot" width="400">
 
 
