@@ -115,6 +115,7 @@ def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%"
         decimals: Number of decimal places to round to.
             If None, the raw float is used without rounding.
         suffix: The suffix to append (default: "%").
+        multiply: bool defaulted to False, if True multiplies the value by 100 turning it to percentage of 100.
 
 
     Returns:
