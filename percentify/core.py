@@ -121,5 +121,7 @@ def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%"
         str: Formatted percentage string, e.g. "25.0%".
     """
     v = float(value)
-    rounded = _round_value(float(value), decimals)
+    if multiply:
+        v *= 100
+    rounded = _round_value(float(v), decimals)
     return f"{rounded}{suffix}"
