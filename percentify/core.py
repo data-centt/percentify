@@ -106,7 +106,7 @@ def split(total: SupportsFloat, weights: List[SupportsFloat], decimals: Optional
     return [_round_value(w / weight_sum * total, decimals) for w in float_weights]
 
 
-def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%") -> str:
+def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%", multiply:bool = False) -> str:
     """
     display takes a numeric value as a percentage string.
 
@@ -116,8 +116,10 @@ def display(value: SupportsFloat, decimals: Optional[int] = 2, suffix: str = "%"
             If None, the raw float is used without rounding.
         suffix: The suffix to append (default: "%").
 
+
     Returns:
         str: Formatted percentage string, e.g. "25.0%".
     """
+    v = float(value)
     rounded = _round_value(float(value), decimals)
     return f"{rounded}{suffix}"
