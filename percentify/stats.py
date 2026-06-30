@@ -169,3 +169,89 @@ def outliers(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, 
     for col in numeric.columns:
         result[col] = _round(_calc(numeric[col]), decimals)
     return result
+
+
+def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.Series, Sequence, np.ndarray], decimals: Optional[int] = 2) -> float:
+    """
+    Calculate R-squared (coefficient of determination).
+
+    R² = 1 - (SS_res / SS_tot), expressed as a percentage.
+
+    Args:
+        y_true: Actual values.
+        y_pred: Predicted values.
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        float: R-squared as a percentage (e.g. 87.3 means 87.3%).
+
+    Raises:
+        ValueError: If inputs have different lengths or fewer than 2 values.
+    """
+    y_true = np.asarray(y_true, dtype=float)
+    y_pred = np.asarray(y_pred, dtype=float)
+
+    if len(y_true) != len(y_pred):
+        raise ValueError("`y_true` and `y_pred` must have the same length.")
+
+    if len(y_true) < 2:
+        raise ValueError("Need at least 2 values to compute R-squared.")
+
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+
+    if ss_tot == 0:
+        return 0.0
+
+    val = (1.0 - ss_res / ss_tot) * 100.0
+    return _round(val, decimals)
+
+
+def variance_explained(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None) -> Dict[str, float]:
+    """
+    Calculate the percentage of variance explained by each principal component.
+
+    Performs PCA using eigendecomposition of the covariance matrix.
+
+    Args:
+        df: DataFrame with numeric columns.
+        decimals: Number of decimal places to round to.
+        n_components: Number of components to return. If None, returns all.
+
+    Returns:
+        dict: Component names mapped to their explained variance percentage.
+            e.g. {"PC1": 45.2, "PC2": 23.1, ...}
+
+    Raises:
+        ValueError: If DataFrame has fewer than 2 numeric columns or rows.
+    """
+    numeric = df.select_dtypes(include=[np.number]).dropna()
+
+    if numeric.shape[1] < 2:
+        raise ValueError("DataFrame must have at least 2 numeric columns.")
+
+    if numeric.shape[0] < 2:
+        raise ValueError("DataFrame must have at least 2 non-null rows.")
+
+    X = numeric.values.astype(float)
+    X_centered = X - X.mean(axis=0)
+
+    cov_matrix = np.cov(X_centered, rowvar=False)
+    eigenvalues, _ = np.linalg.eigh(cov_matrix)
+
+    eigenvalues = eigenvalues[::-1]
+    total = eigenvalues.sum()
+
+    if total == 0:
+        return {}
+
+    ratios = eigenvalues / total * 100.0
+
+    if n_components is not None:
+        ratios = ratios[:n_components]
+
+    result = {}
+    for i, r in enumerate(ratios):
+        result[f"PC{i + 1}"] = _round(r, decimals)
+
+    return result

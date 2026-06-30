@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
-from percentify import vif, missing, cv, outliers
+from percentify import vif, missing, cv, outliers, r_squared, variance_explained
 
 
 # ===== Fixtures =====
@@ -240,3 +240,138 @@ def test_outliers_custom_multiplier():
     strict = outliers(s, multiplier=1.0)
     loose = outliers(s, multiplier=3.0)
     assert strict >= loose
+
+
+# ===== r_squared =====
+
+def test_r_squared_perfect():
+    y = [1, 2, 3, 4, 5]
+    assert r_squared(y, y) == 100.0
+
+
+def test_r_squared_good_fit():
+    y_true = [1, 2, 3, 4, 5]
+    y_pred = [1.1, 1.9, 3.2, 3.8, 5.1]
+    result = r_squared(y_true, y_pred)
+    assert 90 < result < 100
+
+
+def test_r_squared_bad_fit():
+    y_true = [1, 2, 3, 4, 5]
+    y_pred = [5, 4, 3, 2, 1]
+    result = r_squared(y_true, y_pred)
+    assert result < 0
+
+
+def test_r_squared_with_numpy():
+    y_true = np.array([1, 2, 3, 4, 5])
+    y_pred = np.array([1, 2, 3, 4, 5])
+    assert r_squared(y_true, y_pred) == 100.0
+
+
+def test_r_squared_with_series():
+    y_true = pd.Series([1, 2, 3, 4, 5])
+    y_pred = pd.Series([1.1, 2.1, 2.9, 4.0, 5.1])
+    result = r_squared(y_true, y_pred)
+    assert result > 0
+
+
+def test_r_squared_mismatched_length():
+    with pytest.raises(ValueError):
+        r_squared([1, 2, 3], [1, 2])
+
+
+def test_r_squared_too_few():
+    with pytest.raises(ValueError):
+        r_squared([1], [1])
+
+
+def test_r_squared_custom_decimals():
+    y_true = [1, 2, 3, 4, 5]
+    y_pred = [1.1, 1.9, 3.2, 3.8, 5.1]
+    result = r_squared(y_true, y_pred, decimals=4)
+    str_val = str(result)
+    if "." in str_val:
+        assert len(str_val.split(".")[1]) <= 4
+
+
+# ===== variance_explained =====
+
+def test_variance_explained_returns_all_components():
+    np.random.seed(42)
+    df = pd.DataFrame({
+        "a": np.random.randn(100),
+        "b": np.random.randn(100),
+        "c": np.random.randn(100),
+    })
+    result = variance_explained(df)
+    assert len(result) == 3
+    assert "PC1" in result
+    assert "PC2" in result
+    assert "PC3" in result
+
+
+def test_variance_explained_sums_to_100():
+    np.random.seed(42)
+    df = pd.DataFrame({
+        "a": np.random.randn(100),
+        "b": np.random.randn(100),
+        "c": np.random.randn(100),
+    })
+    result = variance_explained(df, decimals=None)
+    assert pytest.approx(sum(result.values()), abs=0.01) == 100.0
+
+
+def test_variance_explained_sorted_descending():
+    np.random.seed(42)
+    df = pd.DataFrame({
+        "a": np.random.randn(100),
+        "b": np.random.randn(100),
+        "c": np.random.randn(100),
+    })
+    result = variance_explained(df)
+    values = list(result.values())
+    assert values == sorted(values, reverse=True)
+
+
+def test_variance_explained_correlated_features():
+    np.random.seed(42)
+    x = np.random.randn(100)
+    df = pd.DataFrame({
+        "a": x,
+        "b": x + np.random.randn(100) * 0.01,
+        "c": np.random.randn(100),
+    })
+    result = variance_explained(df)
+    assert result["PC1"] > 50
+
+
+def test_variance_explained_n_components():
+    np.random.seed(42)
+    df = pd.DataFrame({
+        "a": np.random.randn(100),
+        "b": np.random.randn(100),
+        "c": np.random.randn(100),
+    })
+    result = variance_explained(df, n_components=2)
+    assert len(result) == 2
+    assert "PC1" in result
+    assert "PC2" in result
+    assert "PC3" not in result
+
+
+def test_variance_explained_too_few_columns():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    with pytest.raises(ValueError):
+        variance_explained(df)
+
+
+def test_variance_explained_ignores_non_numeric():
+    np.random.seed(42)
+    df = pd.DataFrame({
+        "a": np.random.randn(50),
+        "b": np.random.randn(50),
+        "name": ["foo"] * 50,
+    })
+    result = variance_explained(df)
+    assert len(result) == 2
