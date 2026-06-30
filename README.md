@@ -64,6 +64,10 @@ display(0.45, multiply=True)          # → "45.0%"
 display(change(100, 20))              # → "-80.0%"
 ```
 
+### Example Use Case
+
+<img src="asset/testcase.jpeg" alt="Screenshot" width="400">
+
 ---
 
 ## 📊 Beyond Percentages — Data Science & Analytics
@@ -90,10 +94,6 @@ from percentify import missing
 missing(df)
 # → {"salary": 12.4, "age": 3.1, "name": 0.0}
 ```
-
-### Example Use Case
-
-<img src="asset/testcase.jpeg" alt="Screenshot" width="400">
 
 ### `cv` — Coefficient of Variation
 Not built-in anywhere — one line instead of `df.std() / df.mean() * 100`.
