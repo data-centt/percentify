@@ -3,7 +3,6 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
-![GitHub Stars](https://img.shields.io/github/stars/data-centt/percentify?style=flat&color=white)
 
 **Percentify** — one import, one line, the stats you actually need.
 
@@ -74,6 +73,10 @@ from percentify import missing
 missing(df)
 # → {"salary": 12.4, "age": 3.1, "name": 0.0}
 ```
+### Example Use Case
+
+<img src="asset/testcase.jpeg" alt="Screenshot" width="400">
+
 
 ### `cv` — Coefficient of Variation
 Not built-in anywhere — one line instead of `df.std() / df.mean() * 100`.
