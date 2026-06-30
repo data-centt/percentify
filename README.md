@@ -1,4 +1,5 @@
 #                                              % Percentify %
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/percentify?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/percentify)
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
@@ -7,6 +8,8 @@
 **Percentify** — one import, one line, the stats you actually need.
 
 Stop digging through scipy, statsmodels, and sklearn for operations you run every day. Percentify surfaces the most common percentage and statistical calculations into simple, readable function calls.
+
+**Beyond percentages** — percentify gives you easy access to deeply buried, everyday-useful statistical operations in just one import.
 
 ---
 
@@ -17,7 +20,7 @@ pip install percentify
 
 ---
 
-## ✨ Core Functions
+## ✨ Core — Percentage Toolkit
 
 ### `percent` — Part of a Whole
 ```python
@@ -63,7 +66,21 @@ display(change(100, 20))              # → "-80.0%"
 
 ---
 
-## 📊 Data Science & Analytics
+## 📊 Beyond Percentages — Data Science & Analytics
+
+The functions below replace multi-step, hard-to-remember imports from scipy, statsmodels, and sklearn with a single line.
+
+### `vif` — Variance Inflation Factor
+Currently buried in `statsmodels.stats.outliers_influence`. One line instead of six.
+```python
+from percentify import vif
+
+vif(df)
+# → {"age": 1.2, "income": 8.4, "debt": 7.9}
+
+vif(df, flag=5.0)
+# → only columns with VIF > 5 (multicollinearity warnings)
+```
 
 ### `missing` — Missing Data Profiling
 No more typing `df.isnull().sum() / len(df) * 100` every time.
@@ -73,10 +90,10 @@ from percentify import missing
 missing(df)
 # → {"salary": 12.4, "age": 3.1, "name": 0.0}
 ```
+
 ### Example Use Case
 
 <img src="asset/testcase.jpeg" alt="Screenshot" width="400">
-
 
 ### `cv` — Coefficient of Variation
 Not built-in anywhere — one line instead of `df.std() / df.mean() * 100`.
@@ -94,15 +111,6 @@ from percentify import outliers
 
 outliers(df["salary"])  # → 4.7
 outliers(df)            # → all numeric columns
-```
-
-### `vif` — Variance Inflation Factor
-Currently buried in `statsmodels.stats.outliers_influence`. One line instead of six.
-```python
-from percentify import vif
-
-vif(df)
-# → {"age": 1.2, "income": 8.4, "debt": 7.9}
 ```
 
 ### `r_squared` — R-Squared
