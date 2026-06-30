@@ -4,13 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "percentify"
-version = "0.3.1"
-description = "A zero-dependency Python toolkit for percentages — calculate, compare, format, and distribute."
+version = "0.3.2"
+description = "One import, one line — the percentage and stats functions you actually need."
 authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.7"
-keywords = ["percentage", "percent", "math", "utility", "statistics", "format"]
+dependencies = [
+    "numpy",
+    "pandas",
+]
+keywords = ["percentage", "percent", "math", "utility", "statistics", "data-science", "multicollinearity", "vif"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
