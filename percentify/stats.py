@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -69,4 +69,103 @@ def vif(df: pd.DataFrame, decimals: Optional[int] = 2, flag: Optional[float] = N
     if flag is not None:
         result = {k: v for k, v in result.items() if v > flag}
 
+    return result
+
+
+def _round(value: float, decimals: Optional[int]) -> float:
+    if decimals is None:
+        return value
+    return round(value, decimals)
+
+
+def missing(df: pd.DataFrame, decimals: Optional[int] = 2) -> Dict[str, float]:
+    """
+    Calculate the percentage of missing values for each column.
+
+    Args:
+        df: DataFrame to profile.
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        dict: Column names mapped to their missing percentage,
+            sorted from highest to lowest.
+    """
+    total = len(df)
+    if total == 0:
+        return {col: 0.0 for col in df.columns}
+
+    result = {}
+    for col in df.columns:
+        pct = df[col].isnull().sum() / total * 100.0
+        result[col] = _round(pct, decimals)
+
+    return dict(sorted(result.items(), key=lambda x: x[1], reverse=True))
+
+
+def cv(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2) -> Union[float, Dict[str, float]]:
+    """
+    Calculate the coefficient of variation (CV = std / mean * 100).
+
+    Args:
+        data: A Series (single result) or DataFrame (all numeric columns).
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        float if Series, dict if DataFrame.
+
+    Raises:
+        ValueError: If the mean is zero (CV is undefined).
+    """
+    if isinstance(data, pd.Series):
+        mean = data.mean()
+        if mean == 0:
+            raise ValueError("Coefficient of variation is undefined when mean is zero.")
+        val = data.std() / abs(mean) * 100.0
+        return _round(val, decimals)
+
+    numeric = data.select_dtypes(include=[np.number])
+    result = {}
+    for col in numeric.columns:
+        mean = numeric[col].mean()
+        if mean == 0:
+            result[col] = float("inf")
+        else:
+            val = numeric[col].std() / abs(mean) * 100.0
+            result[col] = _round(val, decimals)
+    return result
+
+
+def outliers(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5) -> Union[float, Dict[str, float]]:
+    """
+    Calculate the percentage of outliers using the IQR method.
+
+    An outlier is any value below Q1 - multiplier*IQR or above Q3 + multiplier*IQR.
+
+    Args:
+        data: A Series (single result) or DataFrame (all numeric columns).
+        decimals: Number of decimal places to round to.
+        multiplier: IQR multiplier for defining outlier bounds (default: 1.5).
+
+    Returns:
+        float if Series, dict if DataFrame.
+    """
+    def _calc(s: pd.Series) -> float:
+        s = s.dropna()
+        if len(s) == 0:
+            return 0.0
+        q1 = s.quantile(0.25)
+        q3 = s.quantile(0.75)
+        iqr = q3 - q1
+        lower = q1 - multiplier * iqr
+        upper = q3 + multiplier * iqr
+        count = ((s < lower) | (s > upper)).sum()
+        return count / len(s) * 100.0
+
+    if isinstance(data, pd.Series):
+        return _round(_calc(data), decimals)
+
+    numeric = data.select_dtypes(include=[np.number])
+    result = {}
+    for col in numeric.columns:
+        result[col] = _round(_calc(numeric[col]), decimals)
     return result
