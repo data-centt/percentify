@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "percentify"
-version = "0.3.2"
+version = "0.4.0"
 description = "One import, one line — the percentage and stats functions you actually need."
 authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
