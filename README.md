@@ -1,7 +1,6 @@
 #                                               Percentify
 
 [![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify)
-
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
