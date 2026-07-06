@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "percentify"
-version = "0.5.0"
+version = "1.0.0"
 description = "One import, one line — the everyday data science checks (VIF, PCA, outliers, missingness) you actually need."
 authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
