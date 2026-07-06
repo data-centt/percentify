@@ -5,11 +5,11 @@
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
 
-**Percentify** is a one import, one line code, that covers all stats you need for your data analysis and codebase.
+**Percentify** brings the everyday data-science checks to your doorstep — one import, one line.
 
-Stop digging through scipy, statsmodels, and sklearn for operations you run every day. Percentify surfaces the most common percentage and statistical calculations into simple, readable function calls.
+Stop digging through scipy, statsmodels, and sklearn for the operations you run on every dataset. Percentify surfaces the common answer — the one 80% of practitioners actually want — as a single readable function call. Need to go deeper? The underlying libraries are still right there.
 
-
+Every function takes a pandas `DataFrame` (or `Series`) and hands back a clean `DataFrame` you can read, sort, or feed straight into the next step.
 
 ---
 
@@ -18,109 +18,64 @@ Stop digging through scipy, statsmodels, and sklearn for operations you run ever
 pip install percentify
 ```
 
----
-
-## ✨ Core Percentage Toolkit
-
-### `percent`: Part of a Whole
-```python
-from percentify import percent
-
-percent(50, 200)          # → 25.0
-percent(1, 3)             # → 33.33
-percent(5, 0)             # → 0.0  (safe division by zero)
-```
-
-### `change`: Percentage Increase or Decrease
-```python
-from percentify import change
-
-change(100, 150)  # → 50.0   (50% increase)
-change(200, 150)  # → -25.0  (25% decrease)
-```
-
-### `difference`: Difference Between Two Values
-```python
-from percentify import difference
-
-difference(10, 20)  # → 66.67
-difference(50, 50)  # → 0.0
-```
-
-### `split`: Split a Total by Weights
-```python
-from percentify import split
-
-split(200, [1, 3])       # → [50.0, 150.0]
-split(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
-```
-
-### `display`: Format as a String
-```python
-from percentify import display
-
-display(25.0)                         # → "25.0%"
-display(0.45, multiply=True)          # → "45.0%"
-display(change(100, 20))              # → "-80.0%"
-```
-
-### Example Use Case
-
-<img src="asset/testcase.jpeg" alt="Screenshot" width="400">
+Requires `numpy` and `pandas`.
 
 ---
 
-## 📊 Beyond Percentages; Data Science & Analytics
+## 📊 The Toolkit
 
-The functions below replace multi-step, hard-to-remember imports from scipy, statsmodels, and sklearn with a single line.
-
-### `vif`: Variance Inflation Factor (MultiCollinearity)
-Currently buried in `statsmodels.stats.outliers_influence`. One line instead of six.
+### `vif` — Variance Inflation Factor (Multicollinearity)
+Buried in `statsmodels.stats.outliers_influence` behind a six-line loop. One call here.
 ```python
 from percentify import vif
 
 vif(df)
-# → {"age": 1.2, "income": 8.4, "debt": 7.9}
+#   feature   VIF
+# 0  income  8.40
+# 1    debt  7.90
+# 2     age  1.20
 
-vif(df, flag=5.0)
-# → only columns with VIF > 5 (multicollinearity warnings)
+vif(df, flag=5.0)   # only rows above the threshold (your problem columns)
 ```
 
-### `missing`: Easy Missing Data Profiling
-No more typing `df.isnull().sum() / len(df) * 100` every time.
+### `missing` — Missing Data Profiling
+No more `df.isnull().sum() / len(df) * 100`.
 ```python
 from percentify import missing
 
 missing(df)
-# → {"salary": 12.4, "age": 3.1, "name": 0.0}
+#    column  missing_pct
+# 0  salary        12.40
+# 1     age         3.10
+# 2    name         0.00
 ```
 
-### `cv`:  Coefficient of Variation
-Not built-in anywhere — one line instead of `df.std() / df.mean() * 100`.
+### `cv` — Coefficient of Variation
+Not built in anywhere — instead of `df.std() / df.mean() * 100`.
 ```python
 from percentify import cv
 
-cv(df["salary"])  # → 34.2
-cv(df)            # → all numeric columns at once
+cv(df["salary"])   # → 34.2   (a single Series returns a number)
+cv(df)             # → DataFrame of every numeric column, most variable first
 ```
 
-### `outliers`: Percentage of Outliers (IQR Method)
-Stop rewriting the IQR calculation from scratch.
+### `outliers` — Percentage of Outliers (IQR Method)
+Stop rewriting the IQR bounds from scratch.
 ```python
 from percentify import outliers
 
-outliers(df["salary"])  # → 4.7
-outliers(df)            # → all numeric columns
+outliers(df["salary"])   # → 4.7
+outliers(df)             # → DataFrame of every numeric column
 ```
 
-### `r_squared`: R-Squared
+### `r_squared` — R-Squared
 ```python
 from percentify import r_squared
 
-r_squared(y_true, y_pred)  # → 87.3
+r_squared(y_true, y_pred)   # → 87.3
 ```
 
-### `pca_variance`: PCA Variance Breakdown
+### `pca_variance` — PCA Variance Breakdown
 Columns are standardized by default, so a feature measured in large units (e.g.
 dollars) can't dominate the result just because of its scale. Pass
 `standardize=False` for covariance-based PCA on the raw values.
@@ -138,6 +93,24 @@ pca_variance(df, standardize=False)   # covariance-based (scale-sensitive)
 
 ---
 
+## 🛟 Friendly by design
+
+Built for early-career analysts as much as seasoned ones:
+
+- **No cryptic tracebacks.** Hand it a text column where numbers are needed and you get a clear `PercentifyWarning` ("numeric columns required") plus an empty result — not an Arrow/NumPy stack trace.
+- **Sensible defaults.** Results come back sorted worst-first (most collinear, most missing, most variable), and PCA is standardized out of the box.
+- **DataFrames everywhere**, so the output drops straight into your notebook, your next filter, or your model.
+
+Catch or silence the warnings like any other:
+```python
+import warnings
+from percentify import PercentifyWarning
+
+warnings.filterwarnings("ignore", category=PercentifyWarning)
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome!
@@ -147,4 +120,4 @@ Contributions are welcome!
 - Commit your changes
 - Open a pull request
 
-I try to keep it within scope, to discuss big new features first.
+I try to keep it within scope, so please open an issue to discuss big new features first.
