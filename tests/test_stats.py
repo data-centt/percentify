@@ -93,6 +93,27 @@ def test_change_non_numeric_series_warns():
     assert result.isna().all()
 
 
+def test_change_two_columns():
+    df = pd.DataFrame({"old": [100, 200, 50], "new": [150, 150, 100]})
+    result = change(df["old"], df["new"])
+    assert isinstance(result, pd.Series)
+    assert result.iloc[0] == 50.0
+    assert result.iloc[1] == -25.0
+    assert result.iloc[2] == 100.0
+
+
+def test_change_two_columns_zero_old():
+    result = change(pd.Series([0, 100]), pd.Series([50, 150]))
+    assert result.iloc[0] == 0.0
+    assert result.iloc[1] == 50.0
+
+
+def test_change_two_columns_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = change(pd.Series(["a", "b"]), pd.Series([1, 2]))
+    assert result.isna().all()
+
+
 # ===== vif =====
 
 def test_vif_returns_dataframe(independent_df):

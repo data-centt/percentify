@@ -21,22 +21,35 @@ def _round(value: float, decimals: Optional[int]) -> float:
 
 def change(old, new=None, decimals: Optional[int] = 2):
     """
-    Percentage change - the function percentify started with.
+    Percentage change.
 
-    Three ways to call it:
-        - Two numbers: the percentage change from ``old`` to ``new``.
-        - A Series: period-over-period percentage change down the column.
-        - A DataFrame: period-over-period change for every numeric column.
+    - Two numbers: percentage change from ``old`` to ``new``.
+    - Two columns/Series: element-wise percentage change from ``old`` to ``new``.
+    - One Series: period-over-period percentage change down the column.
+    - One DataFrame: period-over-period change for every numeric column.
 
     Args:
-        old: The original value, or a Series/DataFrame for period-over-period change.
-        new: The new value (only used when ``old`` is a single number).
+        old: The original value(s) - a number, Series, or DataFrame.
+        new: The new value(s) - a number or Series. Omit for period-over-period.
         decimals: Number of decimal places to round to. If None, no rounding.
 
     Returns:
-        float for two numbers, a Series for a Series, a DataFrame for a DataFrame.
-        The first row of period-over-period output is NaN (there is no prior value).
+        float, Series, or DataFrame, matching the input.
     """
+    # Two columns / Series: element-wise change from `old` to `new`.
+    if isinstance(old, pd.Series) and new is not None:
+        new_s = new if isinstance(new, pd.Series) else pd.Series(new, index=old.index)
+        if not (pd.api.types.is_numeric_dtype(old) and pd.api.types.is_numeric_dtype(new_s)):
+            _warn("change expects numeric columns, but got non-numeric data. "
+                  "Returning NaN. Encode or select numeric columns.")
+            return pd.Series([float("nan")] * len(old), index=old.index)
+        old_f = old.astype(float)
+        new_f = new_s.astype(float)
+        result = (new_f - old_f) / old_f.abs() * 100.0
+        result = result.where(old_f != 0, 0.0)  # old == 0 -> 0.0 (safe division)
+        return result if decimals is None else result.round(decimals)
+
+    # One Series: period-over-period change down the column.
     if isinstance(old, pd.Series):
         if not pd.api.types.is_numeric_dtype(old):
             _warn(f"change expects numeric data, but got a non-numeric Series "
@@ -45,6 +58,7 @@ def change(old, new=None, decimals: Optional[int] = 2):
         result = old.pct_change(fill_method=None) * 100.0
         return result if decimals is None else result.round(decimals)
 
+    # One DataFrame: period-over-period change for every numeric column.
     if isinstance(old, pd.DataFrame):
         numeric = old.select_dtypes(include=[np.number])
         if numeric.shape[1] == 0:
