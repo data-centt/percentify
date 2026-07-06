@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from percentify import (
-    vif, missing, cv, outliers, r_squared, pca_variance, PercentifyWarning
+    change, vif, missing, cv, outliers, r_squared, pca_variance, PercentifyWarning
 )
 
 
@@ -31,6 +31,66 @@ def collinear_df():
 
 def _to_map(df, key, val):
     return dict(zip(df[key], df[val]))
+
+
+# ===== change =====
+
+def test_change_two_scalars_increase():
+    assert change(100, 150) == 50.0
+
+
+def test_change_two_scalars_decrease():
+    assert change(200, 150) == -25.0
+
+
+def test_change_zero_old():
+    assert change(0, 100) == 0.0
+
+
+def test_change_negative_old():
+    assert change(-100, -50) == 50.0
+
+
+def test_change_custom_decimals():
+    assert change(3, 7, 4) == 133.3333
+
+
+def test_change_scalar_missing_new_raises():
+    with pytest.raises(ValueError):
+        change(100)
+
+
+def test_change_series():
+    result = change(pd.Series([100, 150, 90]))
+    assert isinstance(result, pd.Series)
+    assert np.isnan(result.iloc[0])
+    assert result.iloc[1] == 50.0
+    assert result.iloc[2] == -40.0
+
+
+def test_change_series_custom_decimals():
+    result = change(pd.Series([3, 7]), decimals=4)
+    assert result.iloc[1] == 133.3333
+
+
+def test_change_dataframe():
+    df = pd.DataFrame({"rev": [100, 150, 90], "cost": [10, 20, 10]})
+    result = change(df)
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["rev", "cost"]
+    assert result["rev"].iloc[1] == 50.0
+    assert result["cost"].iloc[1] == 100.0
+
+
+def test_change_dataframe_ignores_non_numeric():
+    df = pd.DataFrame({"rev": [100, 150], "name": ["a", "b"]})
+    assert list(change(df).columns) == ["rev"]
+
+
+def test_change_non_numeric_series_warns():
+    with pytest.warns(PercentifyWarning):
+        result = change(pd.Series(["a", "b", "c"]))
+    assert result.isna().all()
 
 
 # ===== vif =====

@@ -19,6 +19,53 @@ def _round(value: float, decimals: Optional[int]) -> float:
     return round(value, decimals)
 
 
+def change(old, new=None, decimals: Optional[int] = 2):
+    """
+    Percentage change - the function percentify started with.
+
+    Three ways to call it:
+        - Two numbers: the percentage change from ``old`` to ``new``.
+        - A Series: period-over-period percentage change down the column.
+        - A DataFrame: period-over-period change for every numeric column.
+
+    Args:
+        old: The original value, or a Series/DataFrame for period-over-period change.
+        new: The new value (only used when ``old`` is a single number).
+        decimals: Number of decimal places to round to. If None, no rounding.
+
+    Returns:
+        float for two numbers, a Series for a Series, a DataFrame for a DataFrame.
+        The first row of period-over-period output is NaN (there is no prior value).
+    """
+    if isinstance(old, pd.Series):
+        if not pd.api.types.is_numeric_dtype(old):
+            _warn(f"change expects numeric data, but got a non-numeric Series "
+                  f"(dtype: {old.dtype}). Returning NaN. Encode or select a numeric column.")
+            return pd.Series([float("nan")] * len(old), index=old.index)
+        result = old.pct_change(fill_method=None) * 100.0
+        return result if decimals is None else result.round(decimals)
+
+    if isinstance(old, pd.DataFrame):
+        numeric = old.select_dtypes(include=[np.number])
+        if numeric.shape[1] == 0:
+            _warn("Numeric columns required: no numeric columns found for change.")
+            return numeric
+        result = numeric.pct_change(fill_method=None) * 100.0
+        return result if decimals is None else result.round(decimals)
+
+    if new is None:
+        raise ValueError(
+            "change(old, new) needs two numbers. Pass a Series or DataFrame instead "
+            "for period-over-period percentage change."
+        )
+
+    old = float(old)
+    if old == 0:
+        return 0.0
+    value = (float(new) - old) / abs(old) * 100.0
+    return _round(value, decimals)
+
+
 def vif(df: pd.DataFrame, decimals: Optional[int] = 2, flag: Optional[float] = None) -> pd.DataFrame:
     """
     Calculate the Variance Inflation Factor for each numeric column in a DataFrame.

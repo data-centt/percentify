@@ -24,6 +24,23 @@ Requires `numpy` and `pandas`.
 
 ## 📊 The Toolkit
 
+### `change` — Percentage Change *(the original)*
+The function percentify started life as. Give it two numbers, or hand it a column
+and it runs period-over-period down the whole series — the daily bread of growth,
+returns, and time-series work.
+```python
+from percentify import change
+
+change(100, 150)          # → 50.0   (a 50% increase)
+
+change(df["revenue"])     # period-over-period % change down the column
+# 0     NaN
+# 1    50.0
+# 2   -40.0
+
+change(df)                # every numeric column at once
+```
+
 ### `vif` — Variance Inflation Factor (Multicollinearity)
 Buried in `statsmodels.stats.outliers_influence` behind a six-line loop. One call here.
 ```python
