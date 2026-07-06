@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from percentify import (
-    vif, missing, cv, outliers, r_squared, variance_explained, PercentifyWarning
+    vif, missing, cv, outliers, r_squared, pca_variance, PercentifyWarning
 )
 
 
@@ -310,35 +310,35 @@ def test_r_squared_custom_decimals():
         assert len(parts[1]) <= 4
 
 
-# ===== variance_explained =====
+# ===== pca_variance =====
 
-def test_variance_explained_returns_dataframe(independent_df):
-    result = variance_explained(independent_df)
+def test_pca_variance_returns_dataframe(independent_df):
+    result = pca_variance(independent_df)
     assert isinstance(result, pd.DataFrame)
     assert list(result.columns) == ["component", "variance_explained", "cumulative"]
 
 
-def test_variance_explained_all_components(independent_df):
-    result = variance_explained(independent_df)
+def test_pca_variance_all_components(independent_df):
+    result = pca_variance(independent_df)
     assert result["component"].tolist() == ["PC1", "PC2", "PC3"]
 
 
-def test_variance_explained_sums_to_100(independent_df):
-    result = variance_explained(independent_df, decimals=None)
+def test_pca_variance_sums_to_100(independent_df):
+    result = pca_variance(independent_df, decimals=None)
     assert pytest.approx(result["variance_explained"].sum(), abs=0.01) == 100.0
 
 
-def test_variance_explained_cumulative_ends_at_100(independent_df):
-    result = variance_explained(independent_df, decimals=None)
+def test_pca_variance_cumulative_ends_at_100(independent_df):
+    result = pca_variance(independent_df, decimals=None)
     assert pytest.approx(result["cumulative"].iloc[-1], abs=0.01) == 100.0
 
 
-def test_variance_explained_sorted_descending(independent_df):
-    values = variance_explained(independent_df)["variance_explained"].tolist()
+def test_pca_variance_sorted_descending(independent_df):
+    values = pca_variance(independent_df)["variance_explained"].tolist()
     assert values == sorted(values, reverse=True)
 
 
-def test_variance_explained_correlated_features():
+def test_pca_variance_correlated_features():
     np.random.seed(42)
     x = np.random.randn(100)
     df = pd.DataFrame({
@@ -346,27 +346,27 @@ def test_variance_explained_correlated_features():
         "b": x + np.random.randn(100) * 0.01,
         "c": np.random.randn(100),
     })
-    vals = _to_map(variance_explained(df), "component", "variance_explained")
+    vals = _to_map(pca_variance(df), "component", "variance_explained")
     assert vals["PC1"] > 50
 
 
-def test_variance_explained_n_components(independent_df):
-    result = variance_explained(independent_df, n_components=2)
+def test_pca_variance_n_components(independent_df):
+    result = pca_variance(independent_df, n_components=2)
     assert result["component"].tolist() == ["PC1", "PC2"]
 
 
-def test_variance_explained_too_few_columns_warns():
+def test_pca_variance_too_few_columns_warns():
     df = pd.DataFrame({"a": [1, 2, 3]})
     with pytest.warns(PercentifyWarning):
-        result = variance_explained(df)
+        result = pca_variance(df)
     assert result.empty
 
 
-def test_variance_explained_ignores_non_numeric():
+def test_pca_variance_ignores_non_numeric():
     np.random.seed(42)
     df = pd.DataFrame({
         "a": np.random.randn(50),
         "b": np.random.randn(50),
         "name": ["foo"] * 50,
     })
-    assert len(variance_explained(df)) == 2
+    assert len(pca_variance(df)) == 2

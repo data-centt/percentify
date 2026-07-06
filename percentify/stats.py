@@ -250,7 +250,7 @@ def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.S
     return _round(val, decimals)
 
 
-def variance_explained(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None) -> pd.DataFrame:
+def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None) -> pd.DataFrame:
     """
     Calculate the percentage of variance explained by each principal component.
 
@@ -268,13 +268,13 @@ def variance_explained(df: pd.DataFrame, decimals: Optional[int] = 2, n_componen
         DataFrame with columns ["component", "variance_explained", "cumulative"].
     """
     if not isinstance(df, pd.DataFrame):
-        raise TypeError(f"variance_explained expects a pandas DataFrame, got {type(df).__name__}.")
+        raise TypeError(f"pca_variance expects a pandas DataFrame, got {type(df).__name__}.")
 
     empty = pd.DataFrame(columns=["component", "variance_explained", "cumulative"])
     numeric = df.select_dtypes(include=[np.number]).dropna()
 
     if numeric.shape[1] < 2:
-        _warn("Numeric columns required: variance_explained (PCA) needs at least "
+        _warn("Numeric columns required: pca_variance needs at least "
               "2 numeric columns.")
         return empty
 

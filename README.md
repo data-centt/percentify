@@ -120,12 +120,15 @@ from percentify import r_squared
 r_squared(y_true, y_pred)  # → 87.3
 ```
 
-### `variance_explained`: PCA Variance Breakdown
+### `pca_variance`: PCA Variance Breakdown
 ```python
-from percentify import variance_explained
+from percentify import pca_variance
 
-variance_explained(df)
-# → {"PC1": 45.2, "PC2": 23.1, "PC3": 12.8}
+pca_variance(df)
+#   component  variance_explained  cumulative
+# 0       PC1               45.2        45.2
+# 1       PC2               23.1        68.3
+# 2       PC3               12.8        81.1
 ```
 
 ---
