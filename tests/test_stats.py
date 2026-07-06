@@ -370,3 +370,44 @@ def test_pca_variance_ignores_non_numeric():
         "name": ["foo"] * 50,
     })
     assert len(pca_variance(df)) == 2
+
+
+def _scaled_signal_df():
+    """Two columns sharing a signal but on wildly different scales, plus noise."""
+    np.random.seed(0)
+    base = np.random.randn(300)
+    return pd.DataFrame({
+        "small": base + np.random.randn(300) * 0.3,
+        "huge": (base + np.random.randn(300) * 0.3) * 50000,
+        "indep": np.random.randn(300),
+    })
+
+
+def test_pca_variance_standardize_default_ignores_scale():
+    # Default standardize=True: the huge-scale column must not hijack PC1.
+    pc1 = pca_variance(_scaled_signal_df())["variance_explained"].iloc[0]
+    assert pc1 < 90
+
+
+def test_pca_variance_standardize_false_scale_dominates():
+    # Covariance-based: the huge-scale column swamps everything.
+    pc1 = pca_variance(_scaled_signal_df(), standardize=False)["variance_explained"].iloc[0]
+    assert pc1 > 99
+
+
+def test_pca_variance_standardize_drops_constant_column():
+    np.random.seed(0)
+    df = pd.DataFrame({
+        "a": np.random.randn(100),
+        "b": np.random.randn(100),
+        "const": [5.0] * 100,
+    })
+    result = pca_variance(df)
+    assert result["component"].tolist() == ["PC1", "PC2"]
+
+
+def test_pca_variance_standardize_all_constant_warns():
+    df = pd.DataFrame({"a": [5, 5, 5], "b": [1, 1, 1]})
+    with pytest.warns(PercentifyWarning):
+        result = pca_variance(df)
+    assert result.empty

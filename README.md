@@ -121,6 +121,9 @@ r_squared(y_true, y_pred)  # → 87.3
 ```
 
 ### `pca_variance`: PCA Variance Breakdown
+Columns are standardized by default, so a feature measured in large units (e.g.
+dollars) can't dominate the result just because of its scale. Pass
+`standardize=False` for covariance-based PCA on the raw values.
 ```python
 from percentify import pca_variance
 
@@ -129,6 +132,8 @@ pca_variance(df)
 # 0       PC1               45.2        45.2
 # 1       PC2               23.1        68.3
 # 2       PC3               12.8        81.1
+
+pca_variance(df, standardize=False)   # covariance-based (scale-sensitive)
 ```
 
 ---

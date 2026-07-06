@@ -250,19 +250,25 @@ def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.S
     return _round(val, decimals)
 
 
-def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None) -> pd.DataFrame:
+def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None, standardize: bool = True) -> pd.DataFrame:
     """
     Calculate the percentage of variance explained by each principal component.
 
-    Performs PCA via eigendecomposition of the covariance matrix.
+    Performs PCA via eigendecomposition. By default every column is standardized
+    to unit variance first (correlation-based PCA), so that a column measured in
+    large units (e.g. dollars) cannot dominate the result purely because of its
+    scale. Set ``standardize=False`` for covariance-based PCA on the raw values.
 
-    Non-numeric columns are ignored. If fewer than 2 numeric columns are
+    Non-numeric columns are ignored. If fewer than 2 usable numeric columns are
     available, a warning is raised and an empty DataFrame is returned.
 
     Args:
         df: DataFrame with numeric columns.
         decimals: Number of decimal places to round to.
         n_components: Number of components to return. If None, returns all.
+        standardize: If True (default), scale each column to unit variance
+            before the decomposition. Constant (zero-variance) columns are
+            dropped when standardizing, since they cannot be scaled.
 
     Returns:
         DataFrame with columns ["component", "variance_explained", "cumulative"].
@@ -283,9 +289,17 @@ def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Op
         return empty
 
     X = numeric.values.astype(float)
-    X_centered = X - X.mean(axis=0)
 
-    cov_matrix = np.cov(X_centered, rowvar=False)
+    if standardize:
+        keep = X.std(axis=0, ddof=1) > 0
+        if keep.sum() < 2:
+            _warn("Numeric columns required: after dropping constant (zero-variance) "
+                  "columns, fewer than 2 columns remain to standardize for PCA.")
+            return empty
+        X = X[:, keep]
+        X = (X - X.mean(axis=0)) / X.std(axis=0, ddof=1)
+
+    cov_matrix = np.cov(X, rowvar=False)
     eigenvalues, _ = np.linalg.eigh(cov_matrix)
 
     eigenvalues = eigenvalues[::-1]
