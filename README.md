@@ -6,11 +6,11 @@
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
 
-**Percentify — a niche data science library for practitioners and learners alike, drawing its main dependencies from pandas and numpy, and including everyday statistics.**
+**Percentify is a niche data science library for practitioners and learners alike, drawing its main dependencies from pandas and numpy, and including everyday statistics.**
 
-Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront — each as a single, readable function call. No more digging through six-line recipes and hard-to-remember import paths for the checks you run on every dataset.
+Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront, each as a single, readable function call. No more digging through six-line recipes and hard-to-remember import paths for the checks you run on every dataset.
 
-Percentify **does not aim to compete** with pandas, scipy, statsmodels, or scikit-learn — it stands on their shoulders and works *alongside* them. The goal is to make the core concepts easy to learn, quick to use, and simple to remember. Every function names the underlying library it draws from, so the moment you need the full, configurable version, you know exactly where to go.
+Percentify **does not aim to compete** with pandas, scipy, statsmodels, or scikit-learn; it stands on their shoulders and works *alongside* them. The goal is to make the core concepts easy to learn, quick to use, and simple to remember. Every function names the underlying library it draws from, so the moment you need the full, configurable version, you know exactly where to go.
 
 Every function takes a pandas `DataFrame` (or `Series`) and hands back a clean `DataFrame` you can read, sort, or feed straight into the next step.
 
@@ -27,7 +27,7 @@ Requires `numpy` and `pandas`.
 
 ## 📊 The Toolkit
 
-### `change` — Percentage Change
+### `change`: Percentage Change
 Two numbers, two columns, or a whole series at once.
 > _Underlying library:_ `pandas.DataFrame.pct_change`
 ```python
@@ -45,7 +45,7 @@ change(df["revenue"])                  # period-over-period % change down the co
 change(df)                             # every numeric column at once
 ```
 
-### `vif` — Variance Inflation Factor (Multicollinearity)
+### `vif`: Variance Inflation Factor (Multicollinearity)
 The classic multicollinearity check, without the six-line loop.
 > _Underlying library:_ `statsmodels.stats.outliers_influence.variance_inflation_factor`
 ```python
@@ -60,7 +60,7 @@ vif(df)
 vif(df, flag=5.0)   # only rows above the threshold (your problem columns)
 ```
 
-### `missing` — Missing Data Profiling
+### `missing`: Missing Data Profiling
 No more `df.isnull().sum() / len(df) * 100`.
 > _Underlying library:_ `pandas.DataFrame.isna`
 ```python
@@ -73,7 +73,7 @@ missing(df)
 # 2    name         0.00
 ```
 
-### `cv` — Coefficient of Variation
+### `cv`: Coefficient of Variation
 Relative variability (std ÷ mean), as a percentage.
 > _Underlying library:_ `scipy.stats.variation`
 ```python
@@ -83,7 +83,7 @@ cv(df["salary"])   # → 34.2   (a single Series returns a number)
 cv(df)             # → DataFrame of every numeric column, most variable first
 ```
 
-### `outliers` — Percentage of Outliers (IQR Method)
+### `outliers`: Percentage of Outliers (IQR Method)
 Stop rewriting the IQR bounds from scratch.
 > _Underlying library:_ `scipy.stats.iqr`
 ```python
@@ -93,7 +93,7 @@ outliers(df["salary"])   # → 4.7
 outliers(df)             # → DataFrame of every numeric column
 ```
 
-### `r_squared` — R-Squared
+### `r_squared`: R-Squared
 ```python
 from percentify import r_squared
 
@@ -101,7 +101,7 @@ r_squared(y_true, y_pred)   # → 87.3
 ```
 > _Underlying library:_ `sklearn.metrics.r2_score`
 
-### `pca_variance` — PCA Variance Breakdown
+### `pca_variance`: PCA Variance Breakdown
 Columns are standardized by default, so a feature measured in large units (e.g.
 dollars) can't dominate the result just because of its scale. Pass
 `standardize=False` for covariance-based PCA on the raw values.
@@ -151,4 +151,4 @@ If your idea keeps things that simple and direct:
 - Commit your changes
 - Open a pull request
 
-Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope — those cases should point to the source library instead.
+> Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope please those cases should point to the source library instead.
