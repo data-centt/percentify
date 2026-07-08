@@ -29,7 +29,6 @@ Requires `numpy` and `pandas`.
 
 ### `change`: Percentage Change
 Two numbers, two columns, or a whole series at once.
-> _Underlying library:_ `pandas.DataFrame.pct_change`
 ```python
 from percentify import change
 
