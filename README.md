@@ -98,13 +98,13 @@ from percentify import r_squared
 
 r_squared(y_true, y_pred)   # → 87.3
 ```
-> _Underlying library:_ `sklearn.metrics.r2_score`
+> _Similar Concepts:_ `sklearn.metrics.r2_score`
 
 ### `pca_variance`: PCA Variance Breakdown
 Columns are standardized by default, so a feature measured in large units (e.g.
 dollars) can't dominate the result just because of its scale. Pass
 `standardize=False` for covariance-based PCA on the raw values.
-> _Underlying library:_ `sklearn.decomposition.PCA` (`.explained_variance_ratio_`)
+> _Similar Concept:_ `sklearn.decomposition.PCA` (`.explained_variance_ratio_`)
 ```python
 from percentify import pca_variance
 
