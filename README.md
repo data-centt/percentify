@@ -46,7 +46,7 @@ change(df)                             # every numeric column at once
 
 ### `vif`: Variance Inflation Factor (Multicollinearity)
 The classic multicollinearity check, without the six-line loop.
-> _Underlying library:_ `statsmodels.stats.outliers_influence.variance_inflation_factor`
+> _Similar Concept:_ `statsmodels.stats.outliers_influence.variance_inflation_factor`
 ```python
 from percentify import vif
 
@@ -84,7 +84,7 @@ cv(df)             # → DataFrame of every numeric column, most variable first
 
 ### `outliers`: Percentage of Outliers (IQR Method)
 Stop rewriting the IQR bounds from scratch.
-> _Underlying library:_ `scipy.stats.iqr`
+> _Similar Concept:_ `scipy.stats.iqr`
 ```python
 from percentify import outliers
 
