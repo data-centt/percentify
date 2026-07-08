@@ -1,15 +1,18 @@
 #                                               Percentify
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/percentify?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/percentify)
+
+[![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify )
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
 
-**Percentify** is a one import, one line code, that covers all stats you need for your data analysis and codebase.
+**Percentify is a niche data science library for practitioners and learners alike, drawing its main dependencies from pandas and numpy, and including everyday statistics.**
 
-Stop digging through scipy, statsmodels, and sklearn for operations you run every day. Percentify surfaces the most common percentage and statistical calculations into simple, readable function calls.
+Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront, each as a single, readable function call. No more digging through six-line recipes and hard-to-remember import paths for the checks you run on every dataset.
 
+Percentify **does not aim to compete** with pandas, scipy, statsmodels, or scikit-learn; it stands on their shoulders and works *alongside* them. The goal is to make the core concepts easy to learn, quick to use, and simple to remember. Every function names the underlying library it draws from, so the moment you need the full, configurable version, you know exactly where to go.
 
+Every function takes a pandas `DataFrame` (or `Series`) and hands back a clean `DataFrame` you can read, sort, or feed straight into the next step.
 
 ---
 
@@ -18,125 +21,133 @@ Stop digging through scipy, statsmodels, and sklearn for operations you run ever
 pip install percentify
 ```
 
+Requires `numpy` and `pandas`.
+
 ---
 
-## ✨ Core Percentage Toolkit
+## 📊 The Toolkit
 
-### `percent`: Part of a Whole
-```python
-from percentify import percent
-
-percent(50, 200)          # → 25.0
-percent(1, 3)             # → 33.33
-percent(5, 0)             # → 0.0  (safe division by zero)
-```
-
-### `change`: Percentage Increase or Decrease
+### `change`: Percentage Change
+Two numbers, two columns, or a whole series at once.
 ```python
 from percentify import change
 
-change(100, 150)  # → 50.0   (50% increase)
-change(200, 150)  # → -25.0  (25% decrease)
+change(100, 150)                       # → 50.0   (a 50% increase)
+
+change(df["forecast"], df["actual"])   # element-wise % change between two columns
+
+change(df["revenue"])                  # period-over-period % change down the column
+# 0     NaN
+# 1    50.0
+# 2   -40.0
+
+change(df)                             # every numeric column at once
 ```
 
-### `difference`: Difference Between Two Values
-```python
-from percentify import difference
-
-difference(10, 20)  # → 66.67
-difference(50, 50)  # → 0.0
-```
-
-### `split`: Split a Total by Weights
-```python
-from percentify import split
-
-split(200, [1, 3])       # → [50.0, 150.0]
-split(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
-```
-
-### `display`: Format as a String
-```python
-from percentify import display
-
-display(25.0)                         # → "25.0%"
-display(0.45, multiply=True)          # → "45.0%"
-display(change(100, 20))              # → "-80.0%"
-```
-
-### Example Use Case
-
-<img src="asset/testcase.jpeg" alt="Screenshot" width="400">
-
----
-
-## 📊 Beyond Percentages; Data Science & Analytics
-
-The functions below replace multi-step, hard-to-remember imports from scipy, statsmodels, and sklearn with a single line.
-
-### `vif`: Variance Inflation Factor (MultiCollinearity)
-Currently buried in `statsmodels.stats.outliers_influence`. One line instead of six.
+### `vif`: Variance Inflation Factor (Multicollinearity)
+The classic multicollinearity check, without the six-line loop.
+> _Underlying library:_ `statsmodels.stats.outliers_influence.variance_inflation_factor`
 ```python
 from percentify import vif
 
 vif(df)
-# → {"age": 1.2, "income": 8.4, "debt": 7.9}
+#   feature   VIF
+# 0  income  8.40
+# 1    debt  7.90
+# 2     age  1.20
 
-vif(df, flag=5.0)
-# → only columns with VIF > 5 (multicollinearity warnings)
+vif(df, flag=5.0)   # only rows above the threshold (your problem columns)
 ```
 
-### `missing`: Easy Missing Data Profiling
-No more typing `df.isnull().sum() / len(df) * 100` every time.
+### `missing`: Missing Data Profiling
+No more `df.isnull().sum() / len(df) * 100`.
+> _Underlying library:_ `pandas.DataFrame.isna`
 ```python
 from percentify import missing
 
 missing(df)
-# → {"salary": 12.4, "age": 3.1, "name": 0.0}
+#    column  missing_pct
+# 0  salary        12.40
+# 1     age         3.10
+# 2    name         0.00
 ```
 
-### `cv`:  Coefficient of Variation
-Not built-in anywhere — one line instead of `df.std() / df.mean() * 100`.
+### `cv`: Coefficient of Variation
+Relative variability (std ÷ mean), as a percentage.
+> _Underlying library:_ `scipy.stats.variation`
 ```python
 from percentify import cv
 
-cv(df["salary"])  # → 34.2
-cv(df)            # → all numeric columns at once
+cv(df["salary"])   # → 34.2   (a single Series returns a number)
+cv(df)             # → DataFrame of every numeric column, most variable first
 ```
 
 ### `outliers`: Percentage of Outliers (IQR Method)
-Stop rewriting the IQR calculation from scratch.
+Stop rewriting the IQR bounds from scratch.
+> _Underlying library:_ `scipy.stats.iqr`
 ```python
 from percentify import outliers
 
-outliers(df["salary"])  # → 4.7
-outliers(df)            # → all numeric columns
+outliers(df["salary"])   # → 4.7
+outliers(df)             # → DataFrame of every numeric column
 ```
 
 ### `r_squared`: R-Squared
 ```python
 from percentify import r_squared
 
-r_squared(y_true, y_pred)  # → 87.3
+r_squared(y_true, y_pred)   # → 87.3
+```
+> _Underlying library:_ `sklearn.metrics.r2_score`
+
+### `pca_variance`: PCA Variance Breakdown
+Columns are standardized by default, so a feature measured in large units (e.g.
+dollars) can't dominate the result just because of its scale. Pass
+`standardize=False` for covariance-based PCA on the raw values.
+> _Underlying library:_ `sklearn.decomposition.PCA` (`.explained_variance_ratio_`)
+```python
+from percentify import pca_variance
+
+pca_variance(df)
+#   component  variance_explained  cumulative
+# 0       PC1               45.2        45.2
+# 1       PC2               23.1        68.3
+# 2       PC3               12.8        81.1
+
+pca_variance(df, standardize=False)   # covariance-based (scale-sensitive)
 ```
 
-### `variance_explained`: PCA Variance Breakdown
-```python
-from percentify import variance_explained
+---
 
-variance_explained(df)
-# → {"PC1": 45.2, "PC2": 23.1, "PC3": 12.8}
+## 🛟 Friendly by design
+
+Built for early-career analysts as much as seasoned ones:
+
+- **No cryptic tracebacks.** Hand it a text column where numbers are needed and you get a clear `PercentifyWarning` ("numeric columns required") plus an empty result — not an Arrow/NumPy stack trace.
+- **Sensible defaults.** Results come back sorted worst-first (most collinear, most missing, most variable), and PCA is standardized out of the box.
+- **DataFrames everywhere**, so the output drops straight into your notebook, your next filter, or your model.
+
+Catch or silence the warnings like any other:
+```python
+import warnings
+from percentify import PercentifyWarning
+
+warnings.filterwarnings("ignore", category=PercentifyWarning)
 ```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome!
-- If you have an idea (extra helpers, bug fixes or an idea):
-- Fork this repo
+Contributions are welcome — but they must follow the repo's guiding principle:
+
+> **Keep each method as direct-to-output as possible.** A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
+
+If your idea keeps things that simple and direct:
+- Open an issue first to discuss it
+- Fork the repo
 - Create a branch
 - Commit your changes
 - Open a pull request
 
-I try to keep it within scope, to discuss big new features first.
+> Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope please those cases should point to the source library instead.
