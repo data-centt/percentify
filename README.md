@@ -1,6 +1,6 @@
 #                                               Percentify
 
-[![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify)
+[![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify )
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
@@ -29,7 +29,6 @@ Requires `numpy` and `pandas`.
 
 ### `change`: Percentage Change
 Two numbers, two columns, or a whole series at once.
-> _Underlying library:_ `pandas.DataFrame.pct_change`
 ```python
 from percentify import change
 
@@ -47,7 +46,7 @@ change(df)                             # every numeric column at once
 
 ### `vif`: Variance Inflation Factor (Multicollinearity)
 The classic multicollinearity check, without the six-line loop.
-> _Underlying library:_ `statsmodels.stats.outliers_influence.variance_inflation_factor`
+> _Similar Concept:_ `statsmodels.stats.outliers_influence.variance_inflation_factor`
 ```python
 from percentify import vif
 
@@ -85,7 +84,7 @@ cv(df)             # → DataFrame of every numeric column, most variable first
 
 ### `outliers`: Percentage of Outliers (IQR Method)
 Stop rewriting the IQR bounds from scratch.
-> _Underlying library:_ `scipy.stats.iqr`
+> _Similar Concept:_ `scipy.stats.iqr`
 ```python
 from percentify import outliers
 
@@ -99,13 +98,13 @@ from percentify import r_squared
 
 r_squared(y_true, y_pred)   # → 87.3
 ```
-> _Underlying library:_ `sklearn.metrics.r2_score`
+> _Similar Concepts:_ `sklearn.metrics.r2_score`
 
 ### `pca_variance`: PCA Variance Breakdown
 Columns are standardized by default, so a feature measured in large units (e.g.
 dollars) can't dominate the result just because of its scale. Pass
 `standardize=False` for covariance-based PCA on the raw values.
-> _Underlying library:_ `sklearn.decomposition.PCA` (`.explained_variance_ratio_`)
+> _Similar Concept:_ `sklearn.decomposition.PCA` (`.explained_variance_ratio_`)
 ```python
 from percentify import pca_variance
 
