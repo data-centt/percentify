@@ -42,7 +42,7 @@ missing(df)
 # 2    city          0.0
 ```
 
-One import, one line — a clean, sorted DataFrame you can read or feed into the next step.
+One import, one line. A clean, sorted DataFrame you can read or feed into the next step.
 
 ## What's inside
 
