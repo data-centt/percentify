@@ -224,7 +224,9 @@ def cv(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2) -> Uni
     return result.sort_values("cv", ascending=False).reset_index(drop=True)
 
 
-def outliers(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5) -> Union[float, pd.DataFrame]:
+def outliers(
+    data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5
+) -> Union[float, pd.DataFrame]:
     """
     Calculate the percentage of outliers using the IQR method.
 
@@ -272,7 +274,11 @@ def outliers(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, 
     return result.sort_values("outlier_pct", ascending=False).reset_index(drop=True)
 
 
-def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.Series, Sequence, np.ndarray], decimals: Optional[int] = 2) -> float:
+def r_squared(
+    y_true: Union[pd.Series, Sequence, np.ndarray],
+    y_pred: Union[pd.Series, Sequence, np.ndarray],
+    decimals: Optional[int] = 2,
+) -> float:
     """
     Calculate R-squared (coefficient of determination).
 
@@ -311,7 +317,10 @@ def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.S
     return _round(val, decimals)
 
 
-def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None, standardize: bool = True) -> pd.DataFrame:
+def pca_variance(
+    df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None,
+    standardize: bool = True,
+) -> pd.DataFrame:
     """
     Calculate the percentage of variance explained by each principal component.
 
