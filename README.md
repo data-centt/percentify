@@ -81,4 +81,4 @@ If your idea keeps things that simple and direct:
 - Commit your changes
 - Open a pull request
 
-Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope — those cases should point to the source library instead.
+Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope, those cases should point to the source library instead.
