@@ -117,6 +117,39 @@ pca_variance(df)
 pca_variance(df, standardize=False)   # covariance-based (scale-sensitive)
 ```
 
+### `difference`: Symmetric % Difference
+How far apart two values or columns are, regardless of direction (use `change` when direction matters).
+> _Similar Concept:_ `numpy` / `pandas` arithmetic
+```python
+from percentify import difference
+
+difference(10, 20)   # → 66.67  (order-independent)
+
+difference(df["sensor_a"], df["sensor_b"])   # element-wise % gap between two columns
+```
+
+### `split`: Proportional Allocation
+Distribute a total across weights or groups.
+> _Similar Concept:_ `numpy` / `pandas` arithmetic
+```python
+from percentify import split
+
+split(10000, [2, 3, 5])           # → [2000.0, 3000.0, 5000.0]
+
+split(10000, df["population"])    # allocate a budget by population (aligned Series)
+```
+
+### `display`: Percentage Formatting
+Turn numbers or a whole column into clean "%" strings for reports.
+> _Similar Concept:_ `pandas.Series.map` + string formatting
+```python
+from percentify import display
+
+display(0.45, multiply=True)              # → "45.0%"
+
+display(df["conv_rate"], multiply=True)   # → column of "4.5%" strings
+```
+
 ---
 
 ## 🛟 Friendly by design

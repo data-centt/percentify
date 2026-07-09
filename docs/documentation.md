@@ -32,7 +32,7 @@ A few rules hold across the whole library, so you always know what to expect:
 
 Percentage change — as two numbers, between two columns, or down a whole series.
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `pandas.DataFrame.pct_change`
 
 **Signature**
@@ -100,7 +100,7 @@ The first value is `NaN` because there is no prior period to compare against. Pa
 
 Variance Inflation Factor — the classic multicollinearity check, without the six-line loop.
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `statsmodels.stats.outliers_influence.variance_inflation_factor`
 
 **Signature**
@@ -156,7 +156,7 @@ vif(df, flag=5.0)
 
 The percentage of missing values in each column, sorted highest first.
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `pandas.DataFrame.isna`
 
 **Signature**
@@ -195,7 +195,7 @@ Unlike the numeric-only functions, `missing` reports on **every** column, text i
 
 Coefficient of variation — relative variability (`std ÷ mean`), as a percentage. Handy for comparing spread across columns on different scales.
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `scipy.stats.variation`
 
 **Signature**
@@ -240,7 +240,7 @@ cv(df)
 
 The percentage of values that are outliers by the IQR method (below `Q1 − 1.5·IQR` or above `Q3 + 1.5·IQR`).
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `scipy.stats.iqr`
 
 **Signature**
@@ -289,7 +289,7 @@ Tune the sensitivity with `multiplier` (e.g. `multiplier=3.0` for a looser bound
 
 R-squared (coefficient of determination), as a percentage.
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `sklearn.metrics.r2_score`
 
 **Signature**
@@ -318,7 +318,7 @@ The predictions explain 98.9% of the variance in the true values. Accepts lists,
 
 The percentage of variance explained by each principal component, plus a running cumulative total.
 
-!!! tip "Underlying library"
+!!! tip "Similar concept"
     `sklearn.decomposition.PCA` (`.explained_variance_ratio_`)
 
 **Signature**
@@ -355,6 +355,154 @@ Read the `cumulative` column to decide how many components to keep — here PC1 
 
 !!! warning "Standardization matters"
     By default `standardize=True`, so each column is scaled to unit variance first. This stops a column measured in large units (e.g. dollars) from dominating purely because of its scale. Pass `standardize=False` for covariance-based PCA on the raw values.
+
+---
+
+## `difference`
+
+Symmetric percentage difference between two values or two columns — how *far apart* they are, regardless of direction. (Reach for `change` when direction matters.)
+
+!!! tip "Similar concept"
+    `numpy` / `pandas` element-wise arithmetic
+
+**Signature**
+
+```python
+difference(a, b, decimals=2)
+```
+
+**Two numbers**
+
+```python
+from percentify import difference
+
+difference(10, 20)
+```
+
+```text
+66.67
+```
+
+**Two columns** (element-wise) — the average of the two values is the denominator, so `difference(a, b) == difference(b, a)`:
+
+```python
+import pandas as pd
+
+sensors = pd.DataFrame({
+    "sensor_a": [10.0, 50.0, 100.0],
+    "sensor_b": [12.0, 50.0, 130.0],
+})
+
+sensors["pct_gap"] = difference(sensors["sensor_a"], sensors["sensor_b"])
+sensors
+```
+
+```text
+   sensor_a  sensor_b  pct_gap
+0      10.0      12.0    18.18
+1      50.0      50.0     0.00
+2     100.0     130.0    26.09
+```
+
+---
+
+## `split`
+
+Distribute a total across weights, proportionally — allocation for budgets, quotas, or apportioning a sum by group.
+
+!!! tip "Similar concept"
+    `numpy` / `pandas` weighted arithmetic
+
+**Signature**
+
+```python
+split(total, weights, decimals=2)
+```
+
+**A list of weights returns a list**
+
+```python
+from percentify import split
+
+split(10000, [2, 3, 5])
+```
+
+```text
+[2000.0, 3000.0, 5000.0]
+```
+
+**A column of weights returns an aligned Series** — allocate a budget by population:
+
+```python
+import pandas as pd
+
+budget = pd.DataFrame({
+    "region": ["North", "South", "East"],
+    "population": [200, 300, 500],
+})
+
+budget["budget"] = split(10000, budget["population"])
+budget
+```
+
+```text
+  region  population  budget
+0  North         200  2000.0
+1  South         300  3000.0
+2   East         500  5000.0
+```
+
+Raises `ValueError` if `weights` is empty or sums to zero.
+
+---
+
+## `display`
+
+Format a number — or a whole column — as clean percentage strings. The "last mile" for reports, dashboards, and exports.
+
+!!! tip "Similar concept"
+    `pandas.Series.map` + Python string formatting
+
+**Signature**
+
+```python
+display(value, decimals=2, suffix="%", multiply=False)
+```
+
+**A single number returns a string**
+
+```python
+from percentify import display
+
+display(0.45, multiply=True)
+```
+
+```text
+'45.0%'
+```
+
+**A column returns a Series of strings** — turn ratios into report-ready text:
+
+```python
+import pandas as pd
+
+rates = pd.DataFrame({
+    "campaign": ["A", "B", "C"],
+    "conv_rate": [0.045, 0.12, 0.083],
+})
+
+rates["display"] = display(rates["conv_rate"], multiply=True)
+rates
+```
+
+```text
+  campaign  conv_rate display
+0        A      0.045    4.5%
+1        B      0.120   12.0%
+2        C      0.083    8.3%
+```
+
+Use `multiply=True` when your values are ratios (`0.45` → `"45.0%"`); leave it off when they're already percentages (`45` → `"45.0%"`). Customize the trailing text with `suffix`.
 
 ---
 

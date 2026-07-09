@@ -55,3 +55,6 @@ One import, one line — a clean, sorted DataFrame you can read or feed straight
 | `outliers` | What percentage of each column are outliers? |
 | `r_squared` | How well do predictions fit? |
 | `pca_variance` | How much variance does each principal component explain? |
+| `difference` | How far apart are two values or columns (regardless of direction)? |
+| `split` | How does a total divide across weights or groups? |
+| `display` | Format numbers or a column as clean "%" strings for reports. |
