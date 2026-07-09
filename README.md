@@ -9,7 +9,7 @@
 
 **Percentify is a niche data science library for practitioners and learners alike, drawing its main dependencies from pandas and numpy, and including everyday statistics.**
 
-Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront — each as a single, readable function call. It does not aim to compete with pandas, scipy, statsmodels, or scikit-learn; it stands on their shoulders and works alongside them, naming the library each function draws from so you always know where to dig deeper.
+Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront, each as a single, readable function call. It not built to compete with pandas, scipy, statsmodels, or scikit-learn; it stands on their shoulders and works alongside them, naming the library each function draws from so you always know where to dig deeper.
 
 ## 📖 Documentation
 
@@ -48,7 +48,7 @@ One import, one line — a clean, sorted DataFrame you can read or feed into the
 
 | Function | What it answers |
 |---|---|
-| `change` | Growth — as numbers, columns, or a whole series |
+| `change` | Growth as numbers, columns, or a whole series |
 | `vif` | Which features are collinear? |
 | `missing` | How much of each column is missing? |
 | `cv` | How variable is each column, relative to its mean? |
@@ -69,7 +69,7 @@ One import, one line — a clean, sorted DataFrame you can read or feed into the
 
 ## 🤝 Contributing
 
-Contributions are welcome — but they must follow the repo's guiding principle:
+Contributions are welcome but they must follow the repo's guiding principle:
 
 > **Keep each method as direct-to-output as possible.** A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
 
