@@ -1,24 +1,28 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Percentify" width="480">
+</p>
+
 # Percentify
 
-**A niche data science library for practitioners and learners alike** — drawing its main dependencies from pandas and numpy, and including everyday statistics.
+*The 20% of data science operations behind 80% of daily work: each a single, readable function call.*
 
-Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront, each as a single, readable function call. No more digging through six-line recipes and hard-to-remember import paths for the checks you run on every dataset.
+Following the *Pareto principle*, Percentify brings the checks you run on every dataset to the forefront, one call at a time. No more digging through six-line recipes and hard-to-remember import paths.
 
-Percentify **does not aim to compete** with pandas, scipy, statsmodels, or scikit-learn — it stands on their shoulders and works alongside them. Every function names the underlying library it draws from, so the moment you need the full, configurable version, you know exactly where to go.
+Built on pandas and numpy, it pairs the everyday tools you reach for constantly with lesser-known ones worth knowing. Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
 
 ---
 
 ## Install
 
-```bash
+bash
 pip install percentify
-```
 
-Requires `numpy` and `pandas`.
+
+Requires numpy and pandas.
 
 ## A quick taste
 
-```python
+python
 import pandas as pd
 from percentify import missing
 
@@ -29,16 +33,16 @@ df = pd.DataFrame({
 })
 
 missing(df)
-```
 
-```text
+
+text
    column  missing_pct
 0  salary         50.0
 1     age         25.0
 2    city          0.0
-```
 
-One import, one line — a clean, sorted DataFrame you can read or feed straight into the next step.
+
+One import, one line. A clean, sorted DataFrame you can read or feed straight into the next step.
 
 [Read the full documentation →](documentation.md){ .md-button .md-button--primary }
 
