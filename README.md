@@ -85,3 +85,4 @@ If your idea keeps things that simple and direct:
 - Open a pull request
 
 > Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope; those cases should point to the source library instead.
+I try to keep it compact on purpose, to discuss big new features first.
