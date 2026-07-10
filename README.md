@@ -1,4 +1,8 @@
-#                                               Percentify
+
+<h1 align="center">
+  <img src="assets/favicon.png" alt="Percentify logo" height="40">
+  &nbsp;Percentify
+</h1>
 
 [![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify)
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
@@ -7,9 +11,10 @@
 [![Docs](https://img.shields.io/badge/docs-percentify-14b8a6)](https://data-centt.github.io/percentify/)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
 
-**Percentify is a niche data science library for practitioners and learners alike, drawing its main dependencies from pandas and numpy, and including everyday statistics.**
+**Percentify is a data science library that turns the 20% of data science operations behind 80% of daily work into single, readable function calls.**
 
-Following the **Pareto principle**, Percentify brings the 20% of operations that make up 80% of daily data work to the forefront, each as a single, readable function call. It not built to compete with pandas, scipy, statsmodels, or scikit-learn; it stands on their shoulders and works alongside them, naming the library each function draws from so you always know where to dig deeper.
+
+Built on pandas and numpy, it pairs everyday hard to reach tools with lesser-known ones. Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
 
 ## 📖 Documentation
 
@@ -63,22 +68,21 @@ One import, one line. A clean, sorted DataFrame you can read or feed into the ne
 
 ## 🛟 Friendly by design
 
-- **No cryptic tracebacks.** Hand a function a text column where numbers are needed and you get a clear `PercentifyWarning`, not an Arrow/NumPy stack trace.
-- **Sensible defaults.** Results come back sorted worst-first, and PCA is standardized out of the box.
-- **DataFrames everywhere**, so the output drops straight into your notebook, your next filter, or your model.
+- **No cryptic tracebacks**; Hand a function a text column where numbers are needed and you get a clear PercentifyWarning, not an Arrow/NumPy stack trace.
+- **Sensible defaults**; Results come back sorted worst-first, and PCA is standardized out of the box.
+- **DataFrames everywhere**; so the output drops straight into your notebook, your next filter, or your model.
+
 
 ## 🤝 Contributing
 
 Contributions are welcome but they must follow the repo's guiding principle:
-
-> **Keep each method as direct-to-output as possible.** A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
+> Keep each method as direct-to-output as possible. A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
 
 If your idea keeps things that simple and direct:
-
 - Open an issue first to discuss it
 - Fork the repo
 - Create a branch
 - Commit your changes
 - Open a pull request
 
-Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope, those cases should point to the source library instead.
+> Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope; those cases should point to the source library instead.
