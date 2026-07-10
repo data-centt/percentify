@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="asset/Logo.png" alt="Percentify logo" height="52">
+  <img src="asset/log.png" alt="Percentify logo" height="150">
 </p>
 
 [![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify)
