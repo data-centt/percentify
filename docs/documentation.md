@@ -360,7 +360,7 @@ Read the `cumulative` column to decide how many components to keep — here PC1 
 
 ## `imbalance`
 
-Summarize class imbalance in a categorical target — the per-class breakdown plus the headline metrics you actually report.
+Summarize class imbalance in a categorical target: the per-class breakdown plus the headline metrics you actually report.
 
 !!! tip "Similar concept"
     `pandas.Series.value_counts`
@@ -403,8 +403,8 @@ result.attrs["summary"]
  'entropy_pct': 60.98}
 ```
 
-- **`imbalance_ratio`** — majority count ÷ minority count (`5.67` means "No" is 5.7× more common than "Yes").
-- **`entropy_pct`** — `100` for a perfectly balanced target, approaching `0` as one class dominates.
+- **`imbalance_ratio`**: the majority count divided by the minority count (`5.67` means "No" is 5.7x more common than "Yes").
+- **`entropy_pct`**: `100` for a perfectly balanced target, approaching `0` as one class dominates.
 
 Pass a single column (`df["target"]`), not the whole DataFrame. Nulls are dropped before counting.
 
