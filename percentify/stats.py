@@ -1,0 +1,506 @@
+import warnings
+from typing import Optional, Sequence, Union
+
+import numpy as np
+import pandas as pd
+
+
+class PercentifyWarning(UserWarning):
+    """Raised when percentify handles a situation gracefully instead of erroring."""
+
+
+def _warn(message: str) -> None:
+    warnings.warn(message, PercentifyWarning, stacklevel=3)
+
+
+def _round(value: float, decimals: Optional[int]) -> float:
+    if decimals is None:
+        return value
+    return round(value, decimals)
+
+
+def change(old, new=None, decimals: Optional[int] = 2):
+    """
+    Percentage change.
+
+    - Two numbers: percentage change from ``old`` to ``new``.
+    - Two columns/Series: element-wise percentage change from ``old`` to ``new``.
+    - One Series: period-over-period percentage change down the column.
+    - One DataFrame: period-over-period change for every numeric column.
+
+    Args:
+        old: The original value(s) - a number, Series, or DataFrame.
+        new: The new value(s) - a number or Series. Omit for period-over-period.
+        decimals: Number of decimal places to round to. If None, no rounding.
+
+    Returns:
+        float, Series, or DataFrame, matching the input.
+    """
+    # Two columns / Series: element-wise change from `old` to `new`.
+    if isinstance(old, pd.Series) and new is not None:
+        new_s = new if isinstance(new, pd.Series) else pd.Series(new, index=old.index)
+        if not (pd.api.types.is_numeric_dtype(old) and pd.api.types.is_numeric_dtype(new_s)):
+            _warn("change expects numeric columns, but got non-numeric data. "
+                  "Returning NaN. Encode or select numeric columns.")
+            return pd.Series([float("nan")] * len(old), index=old.index)
+        old_f = old.astype(float)
+        new_f = new_s.astype(float)
+        result = (new_f - old_f) / old_f.abs() * 100.0
+        result = result.where(old_f != 0, 0.0)  # old == 0 -> 0.0 (safe division)
+        return result if decimals is None else result.round(decimals)
+
+    # One Series: period-over-period change down the column.
+    if isinstance(old, pd.Series):
+        if not pd.api.types.is_numeric_dtype(old):
+            _warn(f"change expects numeric data, but got a non-numeric Series "
+                  f"(dtype: {old.dtype}). Returning NaN. Encode or select a numeric column.")
+            return pd.Series([float("nan")] * len(old), index=old.index)
+        result = old.pct_change(fill_method=None) * 100.0
+        return result if decimals is None else result.round(decimals)
+
+    # One DataFrame: period-over-period change for every numeric column.
+    if isinstance(old, pd.DataFrame):
+        numeric = old.select_dtypes(include=[np.number])
+        if numeric.shape[1] == 0:
+            _warn("Numeric columns required: no numeric columns found for change.")
+            return numeric
+        result = numeric.pct_change(fill_method=None) * 100.0
+        return result if decimals is None else result.round(decimals)
+
+    if new is None:
+        raise ValueError(
+            "change(old, new) needs two numbers. Pass a Series or DataFrame instead "
+            "for period-over-period percentage change."
+        )
+
+    old = float(old)
+    if old == 0:
+        return 0.0
+    value = (float(new) - old) / abs(old) * 100.0
+    return _round(value, decimals)
+
+
+def vif(df: pd.DataFrame, decimals: Optional[int] = 2, flag: Optional[float] = None) -> pd.DataFrame:
+    """
+    Calculate the Variance Inflation Factor for each numeric column in a DataFrame.
+
+    VIF = 1 / (1 - R²), where R² comes from regressing each feature
+    against all other features. VIF > 5 suggests moderate multicollinearity,
+    VIF > 10 suggests severe multicollinearity.
+
+    Non-numeric columns are ignored. If fewer than 2 numeric columns are
+    available, a warning is raised and an empty DataFrame is returned instead
+    of an error — encode categoricals first.
+
+    Args:
+        df: DataFrame with numeric columns.
+        decimals: Number of decimal places to round to. If None, raw floats.
+        flag: If set, only return rows with VIF above this threshold.
+
+    Returns:
+        DataFrame with columns ["feature", "VIF"], sorted highest VIF first.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"vif expects a pandas DataFrame, got {type(df).__name__}.")
+
+    empty = pd.DataFrame(columns=["feature", "VIF"])
+    numeric = df.select_dtypes(include=[np.number])
+    n_numeric = numeric.shape[1]
+
+    if n_numeric < 2:
+        if n_numeric == 0:
+            _warn("Numeric columns required: no numeric columns found. VIF measures "
+                  "multicollinearity between numeric features - encode any "
+                  "categorical/text columns first.")
+        else:
+            _warn("Numeric columns required: VIF needs at least 2 numeric columns to "
+                  f"measure multicollinearity, but found only {n_numeric}.")
+        return empty
+
+    numeric = numeric.dropna()
+    if numeric.shape[0] < 2:
+        _warn("Not enough data: VIF needs at least 2 complete (non-null) rows.")
+        return empty
+
+    cols = numeric.columns.tolist()
+    X = numeric.values.astype(float)
+
+    vifs = []
+    for i in range(len(cols)):
+        y = X[:, i]
+        others = np.delete(X, i, axis=1)
+        others_with_intercept = np.hstack([np.ones((others.shape[0], 1)), others])
+
+        coeffs, _, _, _ = np.linalg.lstsq(others_with_intercept, y, rcond=None)
+
+        y_pred = others_with_intercept @ coeffs
+        ss_res = np.sum((y - y_pred) ** 2)
+        ss_tot = np.sum((y - np.mean(y)) ** 2)
+
+        r_sq = 0.0 if ss_tot == 0 else 1.0 - (ss_res / ss_tot)
+        vif_val = float("inf") if r_sq >= 1.0 else 1.0 / (1.0 - r_sq)
+
+        if decimals is not None:
+            vif_val = round(vif_val, decimals)
+        vifs.append(vif_val)
+
+    result = pd.DataFrame({"feature": cols, "VIF": vifs})
+    result = result.sort_values("VIF", ascending=False).reset_index(drop=True)
+
+    if flag is not None:
+        result = result[result["VIF"] > flag].reset_index(drop=True)
+
+    return result
+
+
+def missing(df: pd.DataFrame, decimals: Optional[int] = 2) -> pd.DataFrame:
+    """
+    Calculate the percentage of missing values for each column.
+
+    Works on every column (numeric and text), so nothing is dropped.
+
+    Args:
+        df: DataFrame to profile.
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        DataFrame with columns ["column", "missing_pct"], sorted highest first.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"missing expects a pandas DataFrame, got {type(df).__name__}.")
+
+    total = len(df)
+    rows = []
+    for col in df.columns:
+        pct = 0.0 if total == 0 else df[col].isnull().sum() / total * 100.0
+        rows.append((col, _round(pct, decimals)))
+
+    result = pd.DataFrame(rows, columns=["column", "missing_pct"])
+    return result.sort_values("missing_pct", ascending=False).reset_index(drop=True)
+
+
+def cv(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2) -> Union[float, pd.DataFrame]:
+    """
+    Calculate the coefficient of variation (CV = std / mean * 100).
+
+    Args:
+        data: A Series (returns a single float) or DataFrame (returns a DataFrame
+            of all numeric columns).
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        float for a Series, or a DataFrame with columns ["feature", "cv"]
+        sorted highest first. Non-numeric input is handled with a warning.
+    """
+    if isinstance(data, pd.Series):
+        if not pd.api.types.is_numeric_dtype(data):
+            _warn(f"cv expects numeric data, but got a non-numeric Series (dtype: "
+                  f"{data.dtype}). Returning NaN. Encode or select a numeric column.")
+            return float("nan")
+        mean = data.mean()
+        if mean == 0:
+            _warn("Coefficient of variation is undefined when the mean is zero. "
+                  "Returning inf.")
+            return float("inf")
+        return _round(data.std() / abs(mean) * 100.0, decimals)
+
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(f"cv expects a Series or DataFrame, got {type(data).__name__}.")
+
+    numeric = data.select_dtypes(include=[np.number])
+    if numeric.shape[1] == 0:
+        _warn("Numeric columns required: no numeric columns found for cv.")
+        return pd.DataFrame(columns=["feature", "cv"])
+
+    rows = []
+    for col in numeric.columns:
+        mean = numeric[col].mean()
+        if mean == 0:
+            rows.append((col, float("inf")))
+        else:
+            rows.append((col, _round(numeric[col].std() / abs(mean) * 100.0, decimals)))
+
+    result = pd.DataFrame(rows, columns=["feature", "cv"])
+    return result.sort_values("cv", ascending=False).reset_index(drop=True)
+
+
+def outliers(
+    data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5
+) -> Union[float, pd.DataFrame]:
+    """
+    Calculate the percentage of outliers using the IQR method.
+
+    An outlier is any value below Q1 - multiplier*IQR or above Q3 + multiplier*IQR.
+
+    Args:
+        data: A Series (returns a single float) or DataFrame (returns a DataFrame
+            of all numeric columns).
+        decimals: Number of decimal places to round to.
+        multiplier: IQR multiplier for the outlier bounds (default: 1.5).
+
+    Returns:
+        float for a Series, or a DataFrame with columns ["feature", "outlier_pct"]
+        sorted highest first. Non-numeric input is handled with a warning.
+    """
+    def _calc(s: pd.Series) -> float:
+        s = s.dropna()
+        if len(s) == 0:
+            return 0.0
+        q1 = s.quantile(0.25)
+        q3 = s.quantile(0.75)
+        iqr = q3 - q1
+        lower = q1 - multiplier * iqr
+        upper = q3 + multiplier * iqr
+        count = ((s < lower) | (s > upper)).sum()
+        return count / len(s) * 100.0
+
+    if isinstance(data, pd.Series):
+        if not pd.api.types.is_numeric_dtype(data):
+            _warn(f"outliers expects numeric data, but got a non-numeric Series "
+                  f"(dtype: {data.dtype}). Returning NaN. Encode or select a numeric column.")
+            return float("nan")
+        return _round(_calc(data), decimals)
+
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(f"outliers expects a Series or DataFrame, got {type(data).__name__}.")
+
+    numeric = data.select_dtypes(include=[np.number])
+    if numeric.shape[1] == 0:
+        _warn("Numeric columns required: no numeric columns found for outliers.")
+        return pd.DataFrame(columns=["feature", "outlier_pct"])
+
+    rows = [(col, _round(_calc(numeric[col]), decimals)) for col in numeric.columns]
+    result = pd.DataFrame(rows, columns=["feature", "outlier_pct"])
+    return result.sort_values("outlier_pct", ascending=False).reset_index(drop=True)
+
+
+def r_squared(
+    y_true: Union[pd.Series, Sequence, np.ndarray],
+    y_pred: Union[pd.Series, Sequence, np.ndarray],
+    decimals: Optional[int] = 2,
+) -> float:
+    """
+    Calculate R-squared (coefficient of determination).
+
+    R² = 1 - (SS_res / SS_tot), expressed as a percentage.
+
+    Args:
+        y_true: Actual values.
+        y_pred: Predicted values.
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        float: R-squared as a percentage (e.g. 87.3 means 87.3%).
+
+    Raises:
+        ValueError: If inputs are non-numeric, differ in length, or have < 2 values.
+    """
+    try:
+        y_true = np.asarray(y_true, dtype=float)
+        y_pred = np.asarray(y_pred, dtype=float)
+    except (ValueError, TypeError):
+        raise ValueError("r_squared expects numeric values, but got non-numeric input.")
+
+    if len(y_true) != len(y_pred):
+        raise ValueError("`y_true` and `y_pred` must have the same length.")
+
+    if len(y_true) < 2:
+        raise ValueError("Need at least 2 values to compute R-squared.")
+
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+
+    if ss_tot == 0:
+        return 0.0
+
+    val = (1.0 - ss_res / ss_tot) * 100.0
+    return _round(val, decimals)
+
+
+def pca_variance(
+    df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None,
+    standardize: bool = True,
+) -> pd.DataFrame:
+    """
+    Calculate the percentage of variance explained by each principal component.
+
+    Performs PCA via eigendecomposition. By default every column is standardized
+    to unit variance first (correlation-based PCA), so that a column measured in
+    large units (e.g. dollars) cannot dominate the result purely because of its
+    scale. Set ``standardize=False`` for covariance-based PCA on the raw values.
+
+    Non-numeric columns are ignored. If fewer than 2 usable numeric columns are
+    available, a warning is raised and an empty DataFrame is returned.
+
+    Args:
+        df: DataFrame with numeric columns.
+        decimals: Number of decimal places to round to.
+        n_components: Number of components to return. If None, returns all.
+        standardize: If True (default), scale each column to unit variance
+            before the decomposition. Constant (zero-variance) columns are
+            dropped when standardizing, since they cannot be scaled.
+
+    Returns:
+        DataFrame with columns ["component", "variance_explained", "cumulative"].
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"pca_variance expects a pandas DataFrame, got {type(df).__name__}.")
+
+    empty = pd.DataFrame(columns=["component", "variance_explained", "cumulative"])
+    numeric = df.select_dtypes(include=[np.number]).dropna()
+
+    if numeric.shape[1] < 2:
+        _warn("Numeric columns required: pca_variance needs at least "
+              "2 numeric columns.")
+        return empty
+
+    if numeric.shape[0] < 2:
+        _warn("Not enough data: need at least 2 complete (non-null) rows.")
+        return empty
+
+    X = numeric.values.astype(float)
+
+    if standardize:
+        keep = X.std(axis=0, ddof=1) > 0
+        if keep.sum() < 2:
+            _warn("Numeric columns required: after dropping constant (zero-variance) "
+                  "columns, fewer than 2 columns remain to standardize for PCA.")
+            return empty
+        X = X[:, keep]
+        X = (X - X.mean(axis=0)) / X.std(axis=0, ddof=1)
+
+    cov_matrix = np.cov(X, rowvar=False)
+    eigenvalues, _ = np.linalg.eigh(cov_matrix)
+
+    eigenvalues = eigenvalues[::-1]
+    total = eigenvalues.sum()
+
+    if total == 0:
+        _warn("All numeric columns are constant - there is no variance to explain.")
+        return empty
+
+    ratios = eigenvalues / total * 100.0
+    if n_components is not None:
+        ratios = ratios[:n_components]
+
+    cumulative = np.cumsum(ratios)
+    return pd.DataFrame({
+        "component": [f"PC{i + 1}" for i in range(len(ratios))],
+        "variance_explained": [_round(r, decimals) for r in ratios],
+        "cumulative": [_round(c, decimals) for c in cumulative],
+    })
+
+
+def difference(a, b, decimals: Optional[int] = 2):
+    """
+    Symmetric percentage difference between two values or two columns.
+
+    Unlike ``change`` (directional, old -> new), ``difference`` is
+    order-independent: it measures how far apart two values are, using their
+    average as the denominator.
+
+    - Two numbers: a float.
+    - Two Series/columns: element-wise Series.
+
+    Args:
+        a, b: Two numbers, or two Series/columns to compare element-wise.
+        decimals: Number of decimal places to round to. If None, no rounding.
+
+    Returns:
+        float for two numbers, a Series for two columns.
+    """
+    if isinstance(a, pd.Series) or isinstance(b, pd.Series):
+        idx = a.index if isinstance(a, pd.Series) else b.index
+        a_s = a if isinstance(a, pd.Series) else pd.Series(a, index=idx)
+        b_s = b if isinstance(b, pd.Series) else pd.Series(b, index=idx)
+        if not (pd.api.types.is_numeric_dtype(a_s) and pd.api.types.is_numeric_dtype(b_s)):
+            _warn("difference expects numeric columns, but got non-numeric data. "
+                  "Returning NaN. Encode or select numeric columns.")
+            return pd.Series([float("nan")] * len(a_s), index=a_s.index)
+        a_f = a_s.astype(float)
+        b_f = b_s.astype(float)
+        avg = (a_f.abs() + b_f.abs()) / 2.0
+        result = (a_f - b_f).abs() / avg * 100.0
+        result = result.where(avg != 0, 0.0)  # both zero -> 0.0
+        return result if decimals is None else result.round(decimals)
+
+    a = float(a)
+    b = float(b)
+    avg = (abs(a) + abs(b)) / 2.0
+    if avg == 0:
+        return 0.0
+    return _round(abs(a - b) / avg * 100.0, decimals)
+
+
+def split(total, weights, decimals: Optional[int] = 2):
+    """
+    Distribute a total across weights, proportionally.
+
+    - A list/array of weights: a list of allocations.
+    - A Series of weights: a Series of allocations (aligned to its index).
+
+    Args:
+        total: The total amount to distribute.
+        weights: List/array or Series of weights.
+        decimals: Number of decimal places to round to. If None, no rounding.
+
+    Returns:
+        list for list weights, Series for Series weights.
+
+    Raises:
+        ValueError: If weights is empty or the weights sum to zero.
+    """
+    is_series = isinstance(weights, pd.Series)
+    w = weights if is_series else pd.Series(list(weights))
+
+    if len(w) == 0:
+        raise ValueError("`weights` must not be empty.")
+
+    if not pd.api.types.is_numeric_dtype(w):
+        _warn("split expects numeric weights, but got non-numeric data. "
+              "Returning NaN. Encode or select numeric weights.")
+        nan = pd.Series([float("nan")] * len(w), index=w.index)
+        return nan if is_series else nan.tolist()
+
+    weight_sum = float(w.sum())
+    if weight_sum == 0:
+        raise ValueError("Sum of `weights` must not be zero.")
+
+    shares = w.astype(float) / weight_sum * float(total)
+    if decimals is not None:
+        shares = shares.round(decimals)
+    return shares if is_series else shares.tolist()
+
+
+def display(value, decimals: Optional[int] = 2, suffix: str = "%", multiply: bool = False):
+    """
+    Format a number or a numeric column as percentage strings.
+
+    - A single number: a string, e.g. "45.0%".
+    - A Series/column: a Series of formatted strings.
+
+    Args:
+        value: A number or Series to format.
+        decimals: Number of decimal places to round to. If None, no rounding.
+        suffix: The string appended to each value (default "%").
+        multiply: If True, multiply by 100 first (0.45 -> "45.0%").
+
+    Returns:
+        str for a number, a Series of strings for a Series.
+    """
+    if isinstance(value, pd.Series):
+        if not pd.api.types.is_numeric_dtype(value):
+            _warn(f"display expects numeric data, but got a non-numeric Series "
+                  f"(dtype: {value.dtype}). Returning NaN. Encode or select a numeric column.")
+            return pd.Series([float("nan")] * len(value), index=value.index)
+        v = value.astype(float)
+        if multiply:
+            v = v * 100.0
+        if decimals is not None:
+            v = v.round(decimals)
+        return v.map(lambda x: f"{x}{suffix}" if pd.notna(x) else x)
+
+    v = float(value)
+    if multiply:
+        v *= 100.0
+    return f"{_round(v, decimals)}{suffix}"

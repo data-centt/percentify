@@ -1,92 +1,88 @@
-#                                              % Percentify %
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/percentify?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/percentify)
+
+<p align="center">
+  <img src="asset/Logo.png" alt="Percentify logo" height="52">
+</p>
+
+[![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify)
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/percentify.svg?style=flat&color=green)](https://pypi.org/project/percentify/)
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-percentify-14b8a6)](https://data-centt.github.io/percentify/)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
 
-**Percentify** is a Python helper that turns *"part of a whole"* into a clean percentage.  
-Stop typing `(part / whole) * 100` and worrying about division by zero.
-
----
-
-## ✨ What It Does
-
-A zero-dependency Python toolkit for all things percentages:
+**Percentify is a data science library that turns the 20% of data science operations behind 80% of daily work into single, readable function calls.**
 
 
-- **`percent`** — what percentage is `part` of `whole`?
-- **`percent_change`** — how much did a value increase or decrease?
-- **`percent_diff`** — how far apart are two values?
-- **`percent_distribute`** — split a total into weighted shares.
-- **`percent_format`** — turn any number into a clean `"25.0%"` string.
+Built on pandas and numpy, it pairs everyday hard to reach tools with lesser-known ones. Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
 
-All functions handle edge cases (division by zero, negative values) safely and let you control decimal precision.
-=======
-- Calculates what percentage one number is of another.
-- Handles divide-by-zero safely (returns 0.0 instead of crashing).
-- Lets you choose how many decimal places you want to round your answer to.
-- Has zero dependencies — just pure Python.
+## 📖 Documentation
 
+**Full guide, every function, and live examples → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
 
 ## 📦 Installation
-```
+
+```bash
 pip install percentify
 ```
 
-## Usage
+Requires `numpy` and `pandas`.
 
-### `percent` — Part of a Whole
+## Quick example
+
 ```python
-from percentify import percent
+import pandas as pd
+from percentify import missing
 
-percent(50, 200)          # → 25.0
-percent(1, 3)             # → 33.33
-percent(5, 0)             # → 0.0  (safe division by zero)
-percent(7, 9, 4)          # → 77.7778  (custom decimals)
+df = pd.DataFrame({
+    "salary": [50000, None, 60000, None],
+    "age":    [25, 30, None, 40],
+    "city":   ["NY", "LA", "SF", "LA"],
+})
+
+missing(df)
+#    column  missing_pct
+# 0  salary         50.0
+# 1     age         25.0
+# 2    city          0.0
 ```
 
-### `percent_change` — Increase or Decrease
-```python
-from percentify import percent_change
+One import, one line. A clean, sorted DataFrame you can read or feed into the next step.
 
-percent_change(100, 150)  # → 50.0   (50% increase)
-percent_change(200, 150)  # → -25.0  (25% decrease)
-percent_change(0, 100)    # → 0.0    (safe when old is zero)
-```
+## What's inside
 
-### `percent_diff` — Difference Between Two Values
-```python
-from percentify import percent_diff
+| Function | What it answers |
+|---|---|
+| `change` | Growth as numbers, columns, or a whole series |
+| `vif` | Which features are collinear? |
+| `missing` | How much of each column is missing? |
+| `cv` | How variable is each column, relative to its mean? |
+| `outliers` | What percentage of each column are outliers? |
+| `r_squared` | How well do predictions fit? |
+| `pca_variance` | How much variance does each principal component explain? |
+| `difference` | How far apart are two values or columns? |
+| `split` | How does a total divide across weights or groups? |
+| `display` | Format numbers or a column as clean "%" strings |
 
-percent_diff(10, 20)      # → 66.67
-percent_diff(50, 50)      # → 0.0
-```
+→ See the **[documentation](https://data-centt.github.io/percentify/)** for a worked, real-output example of every function.
 
-### `percent_distribute` — Split a Total by Weights
-```python
-from percentify import percent_distribute
+## 🛟 Friendly by design
 
-percent_distribute(200, [1, 3])       # → [50.0, 150.0]
-percent_distribute(100, [1, 1, 1])    # → [33.33, 33.33, 33.33]
-```
+- **No cryptic tracebacks**; Hand a function a text column where numbers are needed and you get a clear PercentifyWarning, not an Arrow/NumPy stack trace.
+- **Sensible defaults**; Results come back sorted worst-first, and PCA is standardized out of the box.
+- **DataFrames everywhere**; so the output drops straight into your notebook, your next filter, or your model.
 
-### `percent_format` — Format as a String
-```python
-from percentify import percent_format
 
-percent_format(25.0)                  # → "25.0%"
-percent_format(33.3333, 1)            # → "33.3%"
-percent_format(50, suffix=" percent") # → "50.0 percent"
-```
+## 🤝 Contributing
 
-# 🤝 Contributing
+Contributions are welcome but they must follow the repo's guiding principle:
+> Keep each method as direct-to-output as possible. A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
 
-Contributions are welcome!
-- If you have an idea (extra helpers, bug fixes or an idea):
-- Fork this repo
+If your idea keeps things that simple and direct:
+- Open an issue first to discuss it
+- Fork the repo
 - Create a branch
 - Commit your changes
 - Open a pull request
 
+> Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope; those cases should point to the source library instead.
 I try to keep it compact on purpose, to discuss big new features first.
