@@ -358,6 +358,58 @@ Read the `cumulative` column to decide how many components to keep — here PC1 
 
 ---
 
+## `imbalance`
+
+Summarize class imbalance in a categorical target — the per-class breakdown plus the headline metrics you actually report.
+
+!!! tip "Similar concept"
+    `pandas.Series.value_counts`
+
+**Signature**
+
+```python
+imbalance(data, decimals=2)
+```
+
+**Example**
+
+```python
+import pandas as pd
+from percentify import imbalance
+
+df = pd.DataFrame({"churn": ["No"] * 850 + ["Yes"] * 150})
+
+result = imbalance(df["churn"])
+result
+```
+
+```text
+  class  count   pct
+0    No    850  85.0
+1   Yes    150  15.0
+```
+
+The headline metrics come attached on `.attrs["summary"]`, so the return stays a clean DataFrame:
+
+```python
+result.attrs["summary"]
+```
+
+```text
+{'n_classes': 2,
+ 'majority_class': 'No',
+ 'minority_class': 'Yes',
+ 'imbalance_ratio': 5.67,
+ 'entropy_pct': 60.98}
+```
+
+- **`imbalance_ratio`** — majority count ÷ minority count (`5.67` means "No" is 5.7× more common than "Yes").
+- **`entropy_pct`** — `100` for a perfectly balanced target, approaching `0` as one class dominates.
+
+Pass a single column (`df["target"]`), not the whole DataFrame. Nulls are dropped before counting.
+
+---
+
 ## `difference`
 
 Symmetric percentage difference between two values or two columns — how *far apart* they are, regardless of direction. (Reach for `change` when direction matters.)

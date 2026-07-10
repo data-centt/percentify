@@ -391,6 +391,58 @@ def pca_variance(
     })
 
 
+def imbalance(data, decimals: Optional[int] = 2) -> pd.DataFrame:
+    """
+    Summarize class imbalance in a categorical target column.
+
+    Args:
+        data: A Series - the target/label column.
+        decimals: Number of decimal places to round percentages to.
+
+    Returns:
+        DataFrame with columns ["class", "count", "pct"], most frequent first.
+        Headline metrics are attached to ``result.attrs["summary"]``:
+        n_classes, majority_class, minority_class, imbalance_ratio, entropy_pct.
+        (imbalance_ratio = majority count / minority count; entropy_pct = 100 for
+        a perfectly balanced target, approaching 0 as one class dominates.)
+    """
+    if isinstance(data, pd.DataFrame):
+        raise TypeError(
+            "imbalance expects a single column (Series), not a DataFrame. "
+            "Pass one column, e.g. df['target']."
+        )
+
+    s = pd.Series(data).dropna()
+    if len(s) == 0:
+        _warn("No data: the target column is empty or all-null.")
+        return pd.DataFrame(columns=["class", "count", "pct"])
+
+    counts = s.value_counts()
+    n = int(counts.sum())
+    probs = counts.to_numpy(dtype=float) / n
+
+    result = pd.DataFrame({
+        "class": list(counts.index),
+        "count": counts.to_numpy(dtype=int),
+        "pct": [_round(p * 100.0, decimals) for p in probs],
+    })
+
+    entropy = -(probs * np.log(probs)).sum()
+    max_entropy = np.log(len(counts))
+    entropy_pct = (entropy / max_entropy * 100.0) if max_entropy > 0 else 0.0
+    minority_count = counts.iloc[-1]
+    ratio = counts.iloc[0] / minority_count if minority_count != 0 else float("inf")
+
+    result.attrs["summary"] = {
+        "n_classes": int(len(counts)),
+        "majority_class": counts.index[0],
+        "minority_class": counts.index[-1],
+        "imbalance_ratio": _round(float(ratio), decimals),
+        "entropy_pct": _round(float(entropy_pct), decimals),
+    }
+    return result
+
+
 def difference(a, b, decimals: Optional[int] = 2):
     """
     Symmetric percentage difference between two values or two columns.
