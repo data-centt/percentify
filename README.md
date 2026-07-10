@@ -1,8 +1,7 @@
 
-<h1 align="center">
-  <img src="assets/favicon.png" alt="Percentify logo" height="40">
-  &nbsp;Percentify
-</h1>
+<p align="center">
+  <img src="asset/favicon.png" alt="Percentify logo" height="52">
+</p>
 
 [![Downloads](https://static.pepy.tech/badge/percentify)](https://pepy.tech/project/percentify)
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
