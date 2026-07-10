@@ -2,7 +2,7 @@
   <img src="asset/log.png" alt="Percentify" width="480">
 </p>
 
-# Percentify
+
 
 *The 20% of data science operations behind 80% of daily work: each a single, readable function call.*
 
