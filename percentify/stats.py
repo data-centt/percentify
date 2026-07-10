@@ -224,7 +224,9 @@ def cv(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2) -> Uni
     return result.sort_values("cv", ascending=False).reset_index(drop=True)
 
 
-def outliers(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5) -> Union[float, pd.DataFrame]:
+def outliers(
+    data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5
+) -> Union[float, pd.DataFrame]:
     """
     Calculate the percentage of outliers using the IQR method.
 
@@ -272,7 +274,11 @@ def outliers(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, 
     return result.sort_values("outlier_pct", ascending=False).reset_index(drop=True)
 
 
-def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.Series, Sequence, np.ndarray], decimals: Optional[int] = 2) -> float:
+def r_squared(
+    y_true: Union[pd.Series, Sequence, np.ndarray],
+    y_pred: Union[pd.Series, Sequence, np.ndarray],
+    decimals: Optional[int] = 2,
+) -> float:
     """
     Calculate R-squared (coefficient of determination).
 
@@ -311,7 +317,10 @@ def r_squared(y_true: Union[pd.Series, Sequence, np.ndarray], y_pred: Union[pd.S
     return _round(val, decimals)
 
 
-def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None, standardize: bool = True) -> pd.DataFrame:
+def pca_variance(
+    df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None,
+    standardize: bool = True,
+) -> pd.DataFrame:
     """
     Calculate the percentage of variance explained by each principal component.
 
@@ -380,3 +389,118 @@ def pca_variance(df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Op
         "variance_explained": [_round(r, decimals) for r in ratios],
         "cumulative": [_round(c, decimals) for c in cumulative],
     })
+
+
+def difference(a, b, decimals: Optional[int] = 2):
+    """
+    Symmetric percentage difference between two values or two columns.
+
+    Unlike ``change`` (directional, old -> new), ``difference`` is
+    order-independent: it measures how far apart two values are, using their
+    average as the denominator.
+
+    - Two numbers: a float.
+    - Two Series/columns: element-wise Series.
+
+    Args:
+        a, b: Two numbers, or two Series/columns to compare element-wise.
+        decimals: Number of decimal places to round to. If None, no rounding.
+
+    Returns:
+        float for two numbers, a Series for two columns.
+    """
+    if isinstance(a, pd.Series) or isinstance(b, pd.Series):
+        idx = a.index if isinstance(a, pd.Series) else b.index
+        a_s = a if isinstance(a, pd.Series) else pd.Series(a, index=idx)
+        b_s = b if isinstance(b, pd.Series) else pd.Series(b, index=idx)
+        if not (pd.api.types.is_numeric_dtype(a_s) and pd.api.types.is_numeric_dtype(b_s)):
+            _warn("difference expects numeric columns, but got non-numeric data. "
+                  "Returning NaN. Encode or select numeric columns.")
+            return pd.Series([float("nan")] * len(a_s), index=a_s.index)
+        a_f = a_s.astype(float)
+        b_f = b_s.astype(float)
+        avg = (a_f.abs() + b_f.abs()) / 2.0
+        result = (a_f - b_f).abs() / avg * 100.0
+        result = result.where(avg != 0, 0.0)  # both zero -> 0.0
+        return result if decimals is None else result.round(decimals)
+
+    a = float(a)
+    b = float(b)
+    avg = (abs(a) + abs(b)) / 2.0
+    if avg == 0:
+        return 0.0
+    return _round(abs(a - b) / avg * 100.0, decimals)
+
+
+def split(total, weights, decimals: Optional[int] = 2):
+    """
+    Distribute a total across weights, proportionally.
+
+    - A list/array of weights: a list of allocations.
+    - A Series of weights: a Series of allocations (aligned to its index).
+
+    Args:
+        total: The total amount to distribute.
+        weights: List/array or Series of weights.
+        decimals: Number of decimal places to round to. If None, no rounding.
+
+    Returns:
+        list for list weights, Series for Series weights.
+
+    Raises:
+        ValueError: If weights is empty or the weights sum to zero.
+    """
+    is_series = isinstance(weights, pd.Series)
+    w = weights if is_series else pd.Series(list(weights))
+
+    if len(w) == 0:
+        raise ValueError("`weights` must not be empty.")
+
+    if not pd.api.types.is_numeric_dtype(w):
+        _warn("split expects numeric weights, but got non-numeric data. "
+              "Returning NaN. Encode or select numeric weights.")
+        nan = pd.Series([float("nan")] * len(w), index=w.index)
+        return nan if is_series else nan.tolist()
+
+    weight_sum = float(w.sum())
+    if weight_sum == 0:
+        raise ValueError("Sum of `weights` must not be zero.")
+
+    shares = w.astype(float) / weight_sum * float(total)
+    if decimals is not None:
+        shares = shares.round(decimals)
+    return shares if is_series else shares.tolist()
+
+
+def display(value, decimals: Optional[int] = 2, suffix: str = "%", multiply: bool = False):
+    """
+    Format a number or a numeric column as percentage strings.
+
+    - A single number: a string, e.g. "45.0%".
+    - A Series/column: a Series of formatted strings.
+
+    Args:
+        value: A number or Series to format.
+        decimals: Number of decimal places to round to. If None, no rounding.
+        suffix: The string appended to each value (default "%").
+        multiply: If True, multiply by 100 first (0.45 -> "45.0%").
+
+    Returns:
+        str for a number, a Series of strings for a Series.
+    """
+    if isinstance(value, pd.Series):
+        if not pd.api.types.is_numeric_dtype(value):
+            _warn(f"display expects numeric data, but got a non-numeric Series "
+                  f"(dtype: {value.dtype}). Returning NaN. Encode or select a numeric column.")
+            return pd.Series([float("nan")] * len(value), index=value.index)
+        v = value.astype(float)
+        if multiply:
+            v = v * 100.0
+        if decimals is not None:
+            v = v.round(decimals)
+        return v.map(lambda x: f"{x}{suffix}" if pd.notna(x) else x)
+
+    v = float(value)
+    if multiply:
+        v *= 100.0
+    return f"{_round(v, decimals)}{suffix}"

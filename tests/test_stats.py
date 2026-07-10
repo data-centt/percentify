@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 import pandas as pd
 from percentify import (
-    change, vif, missing, cv, outliers, r_squared, pca_variance, PercentifyWarning
+    change, vif, missing, cv, outliers, r_squared, pca_variance,
+    difference, split, display, PercentifyWarning,
 )
 
 
@@ -492,3 +493,105 @@ def test_pca_variance_standardize_all_constant_warns():
     with pytest.warns(PercentifyWarning):
         result = pca_variance(df)
     assert result.empty
+
+
+# ===== difference =====
+
+def test_difference_two_scalars():
+    assert difference(10, 20) == 66.67
+
+
+def test_difference_same():
+    assert difference(50, 50) == 0.0
+
+
+def test_difference_both_zero():
+    assert difference(0, 0) == 0.0
+
+
+def test_difference_order_independent():
+    assert difference(10, 20) == difference(20, 10)
+
+
+def test_difference_two_columns():
+    result = difference(pd.Series([10, 50, 100]), pd.Series([20, 50, 300]))
+    assert isinstance(result, pd.Series)
+    assert result.iloc[0] == 66.67
+    assert result.iloc[1] == 0.0
+    assert result.iloc[2] == 100.0
+
+
+def test_difference_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = difference(pd.Series(["a", "b"]), pd.Series([1, 2]))
+    assert result.isna().all()
+
+
+# ===== split =====
+
+def test_split_list():
+    assert split(200, [1, 3]) == [50.0, 150.0]
+
+
+def test_split_equal():
+    assert split(100, [1, 1, 1]) == [pytest.approx(33.33)] * 3
+
+
+def test_split_series_returns_series():
+    result = split(200, pd.Series([1, 3]))
+    assert isinstance(result, pd.Series)
+    assert result.tolist() == [50.0, 150.0]
+
+
+def test_split_series_preserves_index():
+    weights = pd.Series([1, 3], index=["a", "b"])
+    result = split(200, weights)
+    assert result["a"] == 50.0
+    assert result["b"] == 150.0
+
+
+def test_split_empty_raises():
+    with pytest.raises(ValueError):
+        split(100, [])
+
+
+def test_split_zero_sum_raises():
+    with pytest.raises(ValueError):
+        split(100, [0, 0])
+
+
+def test_split_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = split(100, pd.Series(["a", "b"]))
+    assert result.isna().all()
+
+
+# ===== display =====
+
+def test_display_scalar():
+    assert display(25.0) == "25.0%"
+
+
+def test_display_multiply():
+    assert display(0.45, multiply=True) == "45.0%"
+
+
+def test_display_custom_suffix():
+    assert display(50, suffix=" percent") == "50.0 percent"
+
+
+def test_display_series():
+    result = display(pd.Series([0.25, 0.5]), multiply=True)
+    assert isinstance(result, pd.Series)
+    assert result.tolist() == ["25.0%", "50.0%"]
+
+
+def test_display_series_no_multiply():
+    result = display(pd.Series([25.0, 33.3]))
+    assert result.tolist() == ["25.0%", "33.3%"]
+
+
+def test_display_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = display(pd.Series(["a", "b"]))
+    assert result.isna().all()
