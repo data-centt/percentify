@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Percentify" width="480">
+  <img src="asset/log.png" alt="Percentify" width="480">
 </p>
 
 # Percentify
@@ -14,15 +14,15 @@ Built on pandas and numpy, it pairs the everyday tools you reach for constantly 
 
 ## Install
 
-bash
+```bash
 pip install percentify
+```
 
-
-Requires numpy and pandas.
+Requires `numpy` and `pandas`.
 
 ## A quick taste
 
-python
+```python
 import pandas as pd
 from percentify import missing
 
@@ -33,14 +33,14 @@ df = pd.DataFrame({
 })
 
 missing(df)
+```
 
-
-text
+```text
    column  missing_pct
 0  salary         50.0
 1     age         25.0
 2    city          0.0
-
+```
 
 One import, one line. A clean, sorted DataFrame you can read or feed straight into the next step.
 
@@ -52,7 +52,7 @@ One import, one line. A clean, sorted DataFrame you can read or feed straight in
 
 | Function | What it answers |
 |---|---|
-| `change` | How much did a value grow — as numbers, columns, or a whole series? |
+| `change` | How much did a value grow, across numbers, columns, or a whole series? |
 | `vif` | Which features are collinear? |
 | `missing` | How much of each column is missing? |
 | `cv` | How variable is each column, relative to its mean? |
