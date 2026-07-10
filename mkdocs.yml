@@ -6,7 +6,7 @@ repo_name: data-centt/percentify
 
 theme:
   name: material
-  logo: asset/log.png
+  logo: asset/favicon.png
   favicon: asset/favicon.png
   palette:
     - media: "(prefers-color-scheme: light)"
