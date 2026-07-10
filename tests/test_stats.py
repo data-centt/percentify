@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from percentify import (
-    change, vif, missing, cv, outliers, r_squared, pca_variance,
+    change, vif, missing, cv, outliers, r_squared, pca_variance, imbalance,
     difference, split, display, PercentifyWarning,
 )
 
@@ -493,6 +493,66 @@ def test_pca_variance_standardize_all_constant_warns():
     with pytest.warns(PercentifyWarning):
         result = pca_variance(df)
     assert result.empty
+
+
+# ===== imbalance =====
+
+def test_imbalance_basic():
+    s = pd.Series(["No"] * 85 + ["Yes"] * 15)
+    result = imbalance(s)
+    assert list(result.columns) == ["class", "count", "pct"]
+    vals = dict(zip(result["class"], result["pct"]))
+    assert vals["No"] == 85.0
+    assert vals["Yes"] == 15.0
+
+
+def test_imbalance_counts():
+    result = imbalance(pd.Series(["No"] * 85 + ["Yes"] * 15))
+    vals = dict(zip(result["class"], result["count"]))
+    assert vals["No"] == 85
+    assert vals["Yes"] == 15
+
+
+def test_imbalance_sorted_descending():
+    s = pd.Series(["a"] * 10 + ["b"] * 50 + ["c"] * 40)
+    assert imbalance(s)["count"].tolist() == [50, 40, 10]
+
+
+def test_imbalance_summary_attrs():
+    s = pd.Series(["No"] * 850 + ["Yes"] * 150)
+    summary = imbalance(s).attrs["summary"]
+    assert summary["n_classes"] == 2
+    assert summary["majority_class"] == "No"
+    assert summary["minority_class"] == "Yes"
+    assert summary["imbalance_ratio"] == 5.67
+    assert abs(summary["entropy_pct"] - 61.0) < 0.5
+
+
+def test_imbalance_balanced():
+    s = pd.Series(["x"] * 50 + ["y"] * 50)
+    summary = imbalance(s).attrs["summary"]
+    assert summary["imbalance_ratio"] == 1.0
+    assert abs(summary["entropy_pct"] - 100.0) < 0.01
+
+
+def test_imbalance_ignores_nulls():
+    s = pd.Series(["a", "b", None, "a", None])
+    result = imbalance(s)
+    vals = dict(zip(result["class"], result["count"]))
+    assert vals["a"] == 2
+    assert vals["b"] == 1
+    assert result["count"].sum() == 3
+
+
+def test_imbalance_empty_warns():
+    with pytest.warns(PercentifyWarning):
+        result = imbalance(pd.Series([], dtype=object))
+    assert result.empty
+
+
+def test_imbalance_dataframe_raises():
+    with pytest.raises(TypeError):
+        imbalance(pd.DataFrame({"a": [1, 2]}))
 
 
 # ===== difference =====
