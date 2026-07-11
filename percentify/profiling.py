@@ -1,12 +1,12 @@
 """Diagnostic profiling for Percentify.
 
-Unlike descriptive profilers that dump statistics for every column, ``profile``
+Unlike descriptive profilers that dump statistics for every column, ``profiler``
 is a *diagnostician*: it runs a registry of checks, surfaces the problems that
 actually matter, ranks them worst-first, and tells you how to fix each one.
 
-    from percentify import profile
+    from percentify import profiler
 
-    report = profile(df)                 # pandas or polars in, report out
+    report = profiler(df)                # pandas or polars in, report out
     report                               # pretty summary (repr / notebook HTML)
     report.errors                        # just the blocking issues
     assert not report.errors             # drop straight into CI
@@ -37,7 +37,7 @@ import pandas as pd
 
 from .stats import PercentifyWarning, imbalance, missing
 
-__all__ = ["profile", "ProfileReport", "Finding"]
+__all__ = ["profiler", "ProfileReport", "Finding"]
 
 # Severity ordering and the penalty each level deducts from the health score.
 _SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
@@ -380,7 +380,7 @@ CHECKS: list[Callable[[pd.DataFrame, Optional[pd.Series]], list[Finding]]] = [
 # --------------------------------------------------------------------------- #
 @dataclass
 class ProfileReport:
-    """The result of :func:`profile`. Also a plain object you can act on."""
+    """The result of :func:`profiler`. Also a plain object you can act on."""
 
     n_rows: int
     n_cols: int
@@ -487,7 +487,7 @@ class ProfileReport:
 # --------------------------------------------------------------------------- #
 # Public entry point
 # --------------------------------------------------------------------------- #
-def profile(data, target: Optional[str] = None) -> ProfileReport:
+def profiler(data, target: Optional[str] = None) -> ProfileReport:
     """Diagnose a DataFrame: rank its problems worst-first, with fixes.
 
     Parameters

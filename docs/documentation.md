@@ -45,7 +45,7 @@ polars stays optional: it is only imported when you actually pass a polars objec
 
 ---
 
-## `profile`
+## `profiler`
 
 The flagship: a one-call **data diagnostician**. Instead of dumping statistics for every column, it runs a battery of checks, ranks the problems worst-first, scores the data's health, and tells you how to fix each issue. It composes the rest of the toolkit (`missing`, `imbalance`, and more) under one entry point.
 
@@ -55,14 +55,14 @@ The flagship: a one-call **data diagnostician**. Instead of dumping statistics f
 **Signature**
 
 ```python
-profile(data, target=None)
+profiler(data, target=None)
 ```
 
 **Example**
 
 ```python
 import pandas as pd
-from percentify import profile
+from percentify import profiler
 
 df = pd.DataFrame({
     "user_id": range(100),                                              # identifier
@@ -72,7 +72,7 @@ df = pd.DataFrame({
     "churn":   ["No"] * 96 + ["Yes"] * 4,                              # imbalanced target
 })
 
-report = profile(df, target="churn")
+report = profiler(df, target="churn")
 report.health        # 87
 report.to_frame()
 ```
