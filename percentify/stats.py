@@ -1,6 +1,6 @@
 import functools
 import warnings
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -325,50 +325,6 @@ def outliers(
 
 
 @_backend_aware
-def r_squared(
-    y_true: Union[pd.Series, Sequence, np.ndarray],
-    y_pred: Union[pd.Series, Sequence, np.ndarray],
-    decimals: Optional[int] = 2,
-) -> float:
-    """
-    Calculate R-squared (coefficient of determination).
-
-    R² = 1 - (SS_res / SS_tot), expressed as a percentage.
-
-    Args:
-        y_true: Actual values.
-        y_pred: Predicted values.
-        decimals: Number of decimal places to round to.
-
-    Returns:
-        float: R-squared as a percentage (e.g. 87.3 means 87.3%).
-
-    Raises:
-        ValueError: If inputs are non-numeric, differ in length, or have < 2 values.
-    """
-    try:
-        y_true = np.asarray(y_true, dtype=float)
-        y_pred = np.asarray(y_pred, dtype=float)
-    except (ValueError, TypeError):
-        raise ValueError("r_squared expects numeric values, but got non-numeric input.")
-
-    if len(y_true) != len(y_pred):
-        raise ValueError("`y_true` and `y_pred` must have the same length.")
-
-    if len(y_true) < 2:
-        raise ValueError("Need at least 2 values to compute R-squared.")
-
-    ss_res = np.sum((y_true - y_pred) ** 2)
-    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
-
-    if ss_tot == 0:
-        return 0.0
-
-    val = (1.0 - ss_res / ss_tot) * 100.0
-    return _round(val, decimals)
-
-
-@_backend_aware
 def pca_variance(
     df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None,
     standardize: bool = True,
@@ -441,6 +397,77 @@ def pca_variance(
         "variance_explained": [_round(r, decimals) for r in ratios],
         "cumulative": [_round(c, decimals) for c in cumulative],
     })
+
+
+@_backend_aware
+def pca_loadings(
+    df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None,
+    standardize: bool = True,
+) -> pd.DataFrame:
+    """
+    Principal component loadings: how much each feature contributes to each PC.
+
+    Returns the eigenvectors of the (optionally standardized) covariance matrix
+    as a feature x component table. Read down a column to see what a component
+    is made of. Columns are standardized first by default (matching
+    pca_variance); pass standardize=False for covariance-based loadings.
+
+    Non-numeric columns are ignored. If fewer than 2 usable numeric columns are
+    available, a warning is raised and an empty DataFrame is returned.
+
+    Args:
+        df: DataFrame with numeric columns.
+        decimals: Number of decimal places to round to.
+        n_components: Number of components (columns) to return. If None, all.
+        standardize: If True (default), scale each column to unit variance first.
+
+    Returns:
+        DataFrame with a "feature" column followed by PC1, PC2, ... loadings.
+        Note: the sign of a component is arbitrary, so only the relative signs
+        and magnitudes within a column are meaningful.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"pca_loadings expects a pandas DataFrame, got {type(df).__name__}.")
+
+    empty = pd.DataFrame(columns=["feature"])
+    numeric = df.select_dtypes(include=[np.number]).dropna()
+
+    if numeric.shape[1] < 2:
+        _warn("Numeric columns required: pca_loadings needs at least 2 numeric columns.")
+        return empty
+
+    if numeric.shape[0] < 2:
+        _warn("Not enough data: need at least 2 complete (non-null) rows.")
+        return empty
+
+    cols = numeric.columns.tolist()
+    X = numeric.values.astype(float)
+
+    if standardize:
+        keep = X.std(axis=0, ddof=1) > 0
+        if keep.sum() < 2:
+            _warn("Numeric columns required: after dropping constant (zero-variance) "
+                  "columns, fewer than 2 columns remain to standardize for PCA.")
+            return empty
+        cols = [c for c, k in zip(cols, keep) if k]
+        X = X[:, keep]
+        X = (X - X.mean(axis=0)) / X.std(axis=0, ddof=1)
+
+    eigenvalues, eigenvectors = np.linalg.eigh(np.cov(X, rowvar=False))
+
+    if eigenvalues.sum() == 0:
+        _warn("All numeric columns are constant - there are no components to describe.")
+        return empty
+
+    order = np.argsort(eigenvalues)[::-1]
+    eigenvectors = eigenvectors[:, order]
+    if n_components is not None:
+        eigenvectors = eigenvectors[:, :n_components]
+
+    result = pd.DataFrame({"feature": cols})
+    for i in range(eigenvectors.shape[1]):
+        result[f"PC{i + 1}"] = [_round(float(v), decimals) for v in eigenvectors[:, i]]
+    return result
 
 
 @_backend_aware

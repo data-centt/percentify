@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from percentify import (
-    change, vif, missing, cv, outliers, r_squared, pca_variance, imbalance,
+    change, vif, missing, cv, outliers, pca_variance, pca_loadings, imbalance,
     difference, split, display, PercentifyWarning,
 )
 
@@ -345,53 +345,6 @@ def test_outliers_custom_multiplier():
     assert outliers(s, multiplier=1.0) >= outliers(s, multiplier=3.0)
 
 
-# ===== r_squared =====
-
-def test_r_squared_perfect():
-    y = [1, 2, 3, 4, 5]
-    assert r_squared(y, y) == 100.0
-
-
-def test_r_squared_good_fit():
-    result = r_squared([1, 2, 3, 4, 5], [1.1, 1.9, 3.2, 3.8, 5.1])
-    assert 90 < result < 100
-
-
-def test_r_squared_bad_fit():
-    assert r_squared([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]) < 0
-
-
-def test_r_squared_with_numpy():
-    assert r_squared(np.array([1, 2, 3]), np.array([1, 2, 3])) == 100.0
-
-
-def test_r_squared_with_series():
-    result = r_squared(pd.Series([1, 2, 3, 4, 5]), pd.Series([1.1, 2.1, 2.9, 4.0, 5.1]))
-    assert result > 0
-
-
-def test_r_squared_mismatched_length():
-    with pytest.raises(ValueError):
-        r_squared([1, 2, 3], [1, 2])
-
-
-def test_r_squared_too_few():
-    with pytest.raises(ValueError):
-        r_squared([1], [1])
-
-
-def test_r_squared_non_numeric():
-    with pytest.raises(ValueError):
-        r_squared(["a", "b", "c"], ["a", "b", "c"])
-
-
-def test_r_squared_custom_decimals():
-    result = r_squared([1, 2, 3, 4, 5], [1.1, 1.9, 3.2, 3.8, 5.1], decimals=4)
-    parts = str(result).split(".")
-    if len(parts) == 2:
-        assert len(parts[1]) <= 4
-
-
 # ===== pca_variance =====
 
 def test_pca_variance_returns_dataframe(independent_df):
@@ -493,6 +446,68 @@ def test_pca_variance_standardize_all_constant_warns():
     with pytest.warns(PercentifyWarning):
         result = pca_variance(df)
     assert result.empty
+
+
+# ===== pca_loadings =====
+
+def test_pca_loadings_returns_dataframe(independent_df):
+    result = pca_loadings(independent_df)
+    assert isinstance(result, pd.DataFrame)
+    assert result.columns.tolist() == ["feature", "PC1", "PC2", "PC3"]
+
+
+def test_pca_loadings_feature_rows(independent_df):
+    assert set(pca_loadings(independent_df)["feature"]) == {"a", "b", "c"}
+
+
+def test_pca_loadings_columns_are_unit_norm(independent_df):
+    result = pca_loadings(independent_df, decimals=None)
+    for pc in ["PC1", "PC2", "PC3"]:
+        assert abs((result[pc] ** 2).sum() - 1.0) < 1e-9
+
+
+def test_pca_loadings_shared_signal_loads_together():
+    np.random.seed(1)
+    base = np.random.randn(200)
+    df = pd.DataFrame({
+        "a": base + np.random.randn(200) * 0.05,
+        "b": base + np.random.randn(200) * 0.05,   # shares a signal with a
+        "c": np.random.randn(200),                  # independent
+    })
+    load = dict(zip(pca_loadings(df)["feature"], pca_loadings(df)["PC1"]))
+    assert abs(load["a"]) > 0.5
+    assert abs(load["b"]) > 0.5
+    assert (load["a"] > 0) == (load["b"] > 0)   # a and b load with the same sign
+    assert abs(load["c"]) < 0.3
+
+
+def test_pca_loadings_n_components(independent_df):
+    result = pca_loadings(independent_df, n_components=2)
+    assert result.columns.tolist() == ["feature", "PC1", "PC2"]
+
+
+def test_pca_loadings_ignores_non_numeric():
+    np.random.seed(1)
+    df = pd.DataFrame({
+        "a": np.random.randn(50),
+        "b": np.random.randn(50),
+        "name": ["x"] * 50,
+    })
+    assert set(pca_loadings(df)["feature"]) == {"a", "b"}
+
+
+def test_pca_loadings_too_few_columns_warns():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    with pytest.warns(PercentifyWarning):
+        result = pca_loadings(df)
+    assert result.empty
+
+
+def test_pca_loadings_custom_decimals(independent_df):
+    for val in pca_loadings(independent_df, decimals=3)["PC1"]:
+        parts = str(float(val)).split(".")
+        if len(parts) == 2:
+            assert len(parts[1]) <= 3
 
 
 # ===== imbalance =====

@@ -11,7 +11,7 @@ pip install percentify
 Percentify requires `numpy` and `pandas`.
 
 ```python
-from percentify import change, vif, missing, cv, outliers, r_squared, pca_variance
+from percentify import change, vif, missing, cv, outliers, pca_variance, pca_loadings
 ```
 
 ---
@@ -353,35 +353,6 @@ Tune the sensitivity with `multiplier` (e.g. `multiplier=3.0` for a looser bound
 
 ---
 
-## `r_squared`
-
-R-squared (coefficient of determination), as a percentage.
-
-!!! tip "Similar concept"
-    `sklearn.metrics.r2_score`
-
-**Signature**
-
-```python
-r_squared(y_true, y_pred, decimals=2)
-```
-
-**Example**
-
-```python
-from percentify import r_squared
-
-r_squared([1, 2, 3, 4, 5], [1.1, 1.9, 3.2, 3.8, 5.1])
-```
-
-```text
-98.9
-```
-
-The predictions explain 98.9% of the variance in the true values. Accepts lists, numpy arrays, or pandas Series.
-
----
-
 ## `pca_variance`
 
 The percentage of variance explained by each principal component, plus a running cumulative total.
@@ -423,6 +394,50 @@ Read the `cumulative` column to decide how many components to keep — here PC1 
 
 !!! warning "Standardization matters"
     By default `standardize=True`, so each column is scaled to unit variance first. This stops a column measured in large units (e.g. dollars) from dominating purely because of its scale. Pass `standardize=False` for covariance-based PCA on the raw values.
+
+---
+
+## `pca_loadings`
+
+Principal component loadings: what each component is *made of*. Where `pca_variance` tells you how important each PC is, `pca_loadings` shows how much each original feature contributes to it, as a feature-by-component table.
+
+!!! tip "Similar concept"
+    `sklearn.decomposition.PCA` (`.components_`)
+
+**Signature**
+
+```python
+pca_loadings(df, decimals=2, n_components=None, standardize=True)
+```
+
+**Example**
+
+```python
+import numpy as np, pandas as pd
+from percentify import pca_loadings
+
+np.random.seed(7)
+base = np.random.randn(200)
+df = pd.DataFrame({
+    "height": base + np.random.randn(200) * 0.3,
+    "weight": base + np.random.randn(200) * 0.3,   # shares a signal with height
+    "noise":  np.random.randn(200),
+})
+
+pca_loadings(df)
+```
+
+```text
+feature  PC1   PC2   PC3
+ height 0.71  0.01 -0.71
+ weight 0.71 -0.02  0.71
+  noise 0.01  1.00  0.02
+```
+
+Read down a column: PC1 is `height` and `weight` together (both `0.71`), while `noise` sits near `0`, so PC1 is the shared height/weight signal. Standardized by default, matching `pca_variance`.
+
+!!! note "Sign is arbitrary"
+    A component and its negation are equivalent, so the sign of a loading is not meaningful on its own. Only the relative signs and magnitudes *within* a column matter.
 
 ---
 

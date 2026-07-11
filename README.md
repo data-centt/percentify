@@ -61,8 +61,8 @@ One import, one line. A clean, sorted DataFrame you can read or feed into the ne
 | `missing` | How much of each column is missing? |
 | `cv` | How variable is each column, relative to its mean? |
 | `outliers` | What percentage of each column are outliers? |
-| `r_squared` | How well do predictions fit? |
 | `pca_variance` | How much variance does each principal component explain? |
+| `pca_loadings` | What does each principal component consist of? |
 | `imbalance` | How skewed are the classes in a target column? |
 | `difference` | How far apart are two values or columns? |
 | `split` | How does a total divide across weights or groups? |

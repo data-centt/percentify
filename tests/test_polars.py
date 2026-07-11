@@ -4,8 +4,8 @@ import numpy as np
 pl = pytest.importorskip("polars")
 import pandas as pd  # noqa: E402
 from percentify import (  # noqa: E402
-    change, vif, missing, cv, outliers, r_squared,
-    pca_variance, imbalance, difference, split, display,
+    change, vif, missing, cv, outliers,
+    pca_variance, pca_loadings, imbalance, difference, split, display,
 )
 
 
@@ -60,6 +60,19 @@ def test_pca_variance_polars():
     assert result.columns == ["component", "variance_explained", "cumulative"]
 
 
+def test_pca_loadings_polars():
+    np.random.seed(1)
+    base = np.random.randn(80)
+    df = pl.DataFrame({
+        "a": base + np.random.randn(80) * 0.05,
+        "b": base + np.random.randn(80) * 0.05,
+        "c": np.random.randn(80),
+    })
+    result = pca_loadings(df)
+    assert isinstance(result, pl.DataFrame)
+    assert result.columns == ["feature", "PC1", "PC2", "PC3"]
+
+
 # ===== Series in -> scalar out =====
 
 def test_cv_polars_series_returns_float():
@@ -68,12 +81,6 @@ def test_cv_polars_series_returns_float():
 
 def test_outliers_polars_series_returns_float():
     assert isinstance(outliers(pl.Series([1.0, 2, 3, 4, 5, 6, 100])), float)
-
-
-def test_r_squared_polars_series():
-    result = r_squared(pl.Series([1.0, 2, 3, 4, 5]), pl.Series([1.1, 1.9, 3.2, 3.8, 5.1]))
-    assert isinstance(result, float)
-    assert 90 < result < 100
 
 
 # ===== Series in -> polars Series out =====
