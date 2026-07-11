@@ -28,6 +28,23 @@ A few rules hold across the whole library, so you always know what to expect:
 
 ---
 
+## Polars support
+
+Every function accepts **polars** DataFrames and Series as well as pandas, and hands back the same kind you passed in: polars in, polars out. Detection is automatic from the input type, so there is nothing to configure.
+
+```python
+import polars as pl
+from percentify import missing
+
+df = pl.DataFrame({"salary": [50000, None, 60000, None], "age": [25, 30, None, 40]})
+
+missing(df)   # returns a polars DataFrame
+```
+
+polars stays optional: it is only imported when you actually pass a polars object, so pandas-only users pay nothing. Conversion goes through Arrow, so `pyarrow` must be installed for the polars path (it usually already is in a polars setup).
+
+---
+
 ## `change`
 
 Percentage change — as two numbers, between two columns, or down a whole series.

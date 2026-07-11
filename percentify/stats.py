@@ -1,3 +1,4 @@
+import functools
 import warnings
 from typing import Optional, Sequence, Union
 
@@ -19,6 +20,51 @@ def _round(value: float, decimals: Optional[int]) -> float:
     return round(value, decimals)
 
 
+def _is_polars(obj) -> bool:
+    """True if obj is a polars DataFrame/Series, without importing polars."""
+    return type(obj).__module__.split(".", 1)[0] == "polars"
+
+
+def _to_pandas(obj):
+    """Convert a polars DataFrame/Series to pandas; leave anything else as-is."""
+    return obj.to_pandas() if _is_polars(obj) else obj
+
+
+def _to_polars(result):
+    """Convert a pandas result back to polars, carrying any .attrs summary."""
+    import polars as pl
+
+    if isinstance(result, pd.DataFrame):
+        out = pl.from_pandas(result)
+        if getattr(result, "attrs", None):
+            out.attrs = dict(result.attrs)
+        return out
+    if isinstance(result, pd.Series):
+        return pl.from_pandas(result)
+    return result
+
+
+def _backend_aware(func):
+    """Let a pandas-based function accept and return polars objects.
+
+    When any argument is a polars DataFrame/Series, inputs are converted to
+    pandas, the function runs, and the result is converted back to polars
+    (polars in -> polars out). Pure-pandas calls pass straight through and
+    never import polars, so polars stays an optional dependency.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        polars_in = (any(_is_polars(a) for a in args)
+                     or any(_is_polars(v) for v in kwargs.values()))
+        if not polars_in:
+            return func(*args, **kwargs)
+        args = tuple(_to_pandas(a) for a in args)
+        kwargs = {k: _to_pandas(v) for k, v in kwargs.items()}
+        return _to_polars(func(*args, **kwargs))
+    return wrapper
+
+
+@_backend_aware
 def change(old, new=None, decimals: Optional[int] = 2):
     """
     Percentage change.
@@ -80,6 +126,7 @@ def change(old, new=None, decimals: Optional[int] = 2):
     return _round(value, decimals)
 
 
+@_backend_aware
 def vif(df: pd.DataFrame, decimals: Optional[int] = 2, flag: Optional[float] = None) -> pd.DataFrame:
     """
     Calculate the Variance Inflation Factor for each numeric column in a DataFrame.
@@ -153,6 +200,7 @@ def vif(df: pd.DataFrame, decimals: Optional[int] = 2, flag: Optional[float] = N
     return result
 
 
+@_backend_aware
 def missing(df: pd.DataFrame, decimals: Optional[int] = 2) -> pd.DataFrame:
     """
     Calculate the percentage of missing values for each column.
@@ -179,6 +227,7 @@ def missing(df: pd.DataFrame, decimals: Optional[int] = 2) -> pd.DataFrame:
     return result.sort_values("missing_pct", ascending=False).reset_index(drop=True)
 
 
+@_backend_aware
 def cv(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2) -> Union[float, pd.DataFrame]:
     """
     Calculate the coefficient of variation (CV = std / mean * 100).
@@ -224,6 +273,7 @@ def cv(data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2) -> Uni
     return result.sort_values("cv", ascending=False).reset_index(drop=True)
 
 
+@_backend_aware
 def outliers(
     data: Union[pd.Series, pd.DataFrame], decimals: Optional[int] = 2, multiplier: float = 1.5
 ) -> Union[float, pd.DataFrame]:
@@ -274,6 +324,7 @@ def outliers(
     return result.sort_values("outlier_pct", ascending=False).reset_index(drop=True)
 
 
+@_backend_aware
 def r_squared(
     y_true: Union[pd.Series, Sequence, np.ndarray],
     y_pred: Union[pd.Series, Sequence, np.ndarray],
@@ -317,6 +368,7 @@ def r_squared(
     return _round(val, decimals)
 
 
+@_backend_aware
 def pca_variance(
     df: pd.DataFrame, decimals: Optional[int] = 2, n_components: Optional[int] = None,
     standardize: bool = True,
@@ -391,6 +443,7 @@ def pca_variance(
     })
 
 
+@_backend_aware
 def imbalance(data, decimals: Optional[int] = 2) -> pd.DataFrame:
     """
     Summarize class imbalance in a categorical target column.
@@ -443,6 +496,7 @@ def imbalance(data, decimals: Optional[int] = 2) -> pd.DataFrame:
     return result
 
 
+@_backend_aware
 def difference(a, b, decimals: Optional[int] = 2):
     """
     Symmetric percentage difference between two values or two columns.
@@ -484,6 +538,7 @@ def difference(a, b, decimals: Optional[int] = 2):
     return _round(abs(a - b) / avg * 100.0, decimals)
 
 
+@_backend_aware
 def split(total, weights, decimals: Optional[int] = 2):
     """
     Distribute a total across weights, proportionally.
@@ -524,6 +579,7 @@ def split(total, weights, decimals: Optional[int] = 2):
     return shares if is_series else shares.tolist()
 
 
+@_backend_aware
 def display(value, decimals: Optional[int] = 2, suffix: str = "%", multiply: bool = False):
     """
     Format a number or a numeric column as percentage strings.

@@ -9,8 +9,11 @@
 [![License](https://img.shields.io/pypi/l/percentify.svg?style=flat&color=orange)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-percentify-14b8a6)](https://data-centt.github.io/percentify/)
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
+[![Polars](https://img.shields.io/badge/Polars-supported-cd792c?style=flat)](https://data-centt.github.io/percentify/)
 
 **Percentify is a data science library that turns the 20% of data science operations behind 80% of daily work into single, readable function calls.**
+
+**⚡ Full Polars DataFrame support:** pass a polars DataFrame or Series and get the same kind back, no flag needed.
 
 
 Built on pandas and numpy, it pairs everyday hard to reach tools with lesser-known ones. Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
@@ -71,12 +74,15 @@ One import, one line. A clean, sorted DataFrame you can read or feed into the ne
 - **No cryptic tracebacks**; Hand a function a text column where numbers are needed and you get a clear PercentifyWarning, not an Arrow/NumPy stack trace.
 - **Sensible defaults**; Results come back sorted worst-first, and PCA is standardized out of the box.
 - **DataFrames everywhere**; so the output drops straight into your notebook, your next filter, or your model.
+- **Pandas or polars**; pass either a pandas or polars object and you get the same kind back, no flag needed.
 
 
 ## 🤝 Contributing
 
 Contributions are welcome but they must follow the repo's guiding principle:
 > Keep each method as direct-to-output as possible. A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
+
+**It must support polars.** Every function accepts both pandas and polars objects (via the `@_backend_aware` decorator) and returns the same kind, so any new contribution must keep that parity.
 
 If your idea keeps things that simple and direct:
 - Open an issue first to discuss it
