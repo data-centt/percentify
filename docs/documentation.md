@@ -45,6 +45,57 @@ polars stays optional: it is only imported when you actually pass a polars objec
 
 ---
 
+## `profile`
+
+The flagship: a one-call **data diagnostician**. Instead of dumping statistics for every column, it runs a battery of checks, ranks the problems worst-first, scores the data's health, and tells you how to fix each issue. It composes the rest of the toolkit (`missing`, `imbalance`, and more) under one entry point.
+
+!!! tip "Similar concept"
+    `ydata-profiling` / `pandas.DataFrame.describe`, but diagnostic (it ranks problems and suggests fixes) rather than descriptive.
+
+**Signature**
+
+```python
+profile(data, target=None)
+```
+
+**Example**
+
+```python
+import pandas as pd
+from percentify import profile
+
+df = pd.DataFrame({
+    "user_id": range(100),                                              # identifier
+    "plan":    ["free"] * 100,                                          # constant
+    "age":     [20 + (i * 37) % 40 for i in range(100)],
+    "spend":   [None if i % 2 == 0 else float((i * 13) % 100) for i in range(100)],
+    "churn":   ["No"] * 96 + ["Yes"] * 4,                              # imbalanced target
+})
+
+report = profile(df, target="churn")
+report.health        # 87
+report.to_frame()
+```
+
+```text
+severity         code   column                          message                           suggestion
+ warning     constant     plan          only one distinct value         drop, carries no information
+ warning high_missing    spend                      50% missing                       impute or drop
+ warning      id_like  user_id identifier-like (100/100 unique)                 drop before modeling
+    info    imbalance <target> class 'Yes' is only 4.0% of rows consider resampling or class weights
+```
+
+The report renders as a compact, color-coded summary in notebooks and terminals, and exposes everything programmatically:
+
+- `report.errors`, `report.warnings`, `report.infos`: findings filtered by severity.
+- `report.to_frame()`: all findings as a tidy DataFrame.
+- `report.health`: a 0 to 100 score (100 is clean).
+- `assert not report.errors`: drop it straight into a CI data-quality gate.
+
+Pass `target=` to also check for **leakage** (features that predict the target almost perfectly) and class imbalance. Accepts pandas or polars input.
+
+---
+
 ## `change`
 
 Percentage change — as two numbers, between two columns, or down a whole series.

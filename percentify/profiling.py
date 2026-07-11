@@ -26,6 +26,7 @@ Design notes
 
 from __future__ import annotations
 
+import html
 import re
 import warnings
 from dataclasses import dataclass, field
@@ -33,6 +34,8 @@ from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
+
+from .stats import PercentifyWarning, imbalance, missing
 
 __all__ = ["profile", "ProfileReport", "Finding"]
 
@@ -132,18 +135,18 @@ def _encode_target(target: pd.Series) -> tuple[np.ndarray, bool]:
 # --------------------------------------------------------------------------- #
 def check_missing(df: pd.DataFrame, target) -> list[Finding]:
     out: list[Finding] = []
-    n = len(df)
-    if n == 0:
+    if len(df) == 0:
         return out
-    frac = df.isna().mean()
-    for col, f in frac.items():
-        if f >= 1.0:
+    # Reuse the package's missing() so there is a single source of truth.
+    for _, row in missing(df).iterrows():
+        col, pct = row["column"], row["missing_pct"]
+        if pct >= 100.0:
             out.append(Finding(col, "error", "all_missing",
                                "column is entirely missing",
                                "drop the column"))
-        elif f >= 0.4:
+        elif pct >= 40.0:
             out.append(Finding(col, "warning", "high_missing",
-                               f"{f * 100:.0f}% missing",
+                               f"{pct:.0f}% missing",
                                "impute or drop"))
     return out
 
@@ -156,7 +159,7 @@ def check_constant(df: pd.DataFrame, target) -> list[Finding]:
         if df[col].nunique(dropna=True) <= 1:
             out.append(Finding(col, "warning", "constant",
                                "only one distinct value",
-                               "drop — carries no information"))
+                               "drop, carries no information"))
     return out
 
 
@@ -286,7 +289,7 @@ def check_collinearity(df: pd.DataFrame, target) -> list[Finding]:
             if pd.notna(r) and r >= 0.95 and frozenset((a, b)) not in seen:
                 seen.add(frozenset((a, b)))
                 out.append(Finding(f"{a} \u27f7 {b}", "warning", "collinear",
-                                   f"correlation {r:.2f} — redundant pair",
+                                   f"correlation {r:.2f}, redundant pair",
                                    "drop one, or check vif()"))
     return out
 
@@ -298,11 +301,13 @@ def check_leakage(df: pd.DataFrame, target) -> list[Finding]:
     y, y_is_cat = _encode_target(target)
     out: list[Finding] = []
     n = len(df)
+    numeric_cols = set(_numeric_columns(df))
+    text_cols = set(_text_columns(df))
 
     for col in df.columns:
         s = df[col]
         # Numeric feature: near-perfect linear association with the target.
-        if col in _numeric_columns(df):
+        if col in numeric_cols:
             mask = s.notna().to_numpy() & np.isfinite(y)
             if mask.sum() < 10:
                 continue
@@ -314,9 +319,9 @@ def check_leakage(df: pd.DataFrame, target) -> list[Finding]:
             if np.isfinite(r) and r > 0.98:
                 out.append(Finding(col, "error", "leakage",
                                    f"predicts the target (|r|={r:.2f})",
-                                   "likely leakage — confirm it is known at predict time"))
+                                   "likely leakage, confirm it is known at predict time"))
         # Categorical feature: does it almost perfectly determine the target?
-        elif y_is_cat and col in _text_columns(df):
+        elif y_is_cat and col in text_cols:
             nun = s.nunique(dropna=True)
             if nun <= 1 or nun >= 0.5 * n:
                 continue  # constant or id-like handled elsewhere
@@ -331,7 +336,7 @@ def check_leakage(df: pd.DataFrame, target) -> list[Finding]:
                 out.append(Finding(col, "error", "leakage",
                                    f"almost perfectly determines the target "
                                    f"(purity {purity:.2f})",
-                                   "likely leakage — confirm it is known at predict time"))
+                                   "likely leakage, confirm it is known at predict time"))
     return out
 
 
@@ -340,11 +345,16 @@ def check_target_imbalance(df: pd.DataFrame, target) -> list[Finding]:
         return []
     if pd.api.types.is_numeric_dtype(target) and target.nunique(dropna=True) > 20:
         return []  # treat as continuous
-    counts = target.value_counts(normalize=True, dropna=True)
-    if len(counts) >= 2 and counts.min() < 0.05:
-        smallest = counts.idxmin()
+    # Reuse the package's imbalance() rather than re-deriving the class balance.
+    result = imbalance(target)
+    summary = result.attrs.get("summary", {})
+    if summary.get("n_classes", 0) < 2:
+        return []
+    minority = summary["minority_class"]
+    min_pct = dict(zip(result["class"].tolist(), result["pct"].tolist())).get(minority)
+    if min_pct is not None and min_pct < 5.0:
         return [Finding("<target>", "info", "imbalance",
-                        f"class '{smallest}' is only {counts.min() * 100:.1f}% of rows",
+                        f"class '{minority}' is only {min_pct:.1f}% of rows",
                         "consider resampling or class weights")]
     return []
 
@@ -444,12 +454,12 @@ class ProfileReport:
         rows = ""
         for f in self.findings:
             c = colors[f.severity]
-            sug = f" &rarr; {f.suggestion}" if f.suggestion else ""
+            sug = f" &rarr; {html.escape(f.suggestion)}" if f.suggestion else ""
             rows += (
                 f'<tr><td style="color:{c};font-weight:600;padding:2px 10px">'
                 f'{f.severity}</td>'
-                f'<td style="font-family:monospace;padding:2px 10px">{f.column}</td>'
-                f'<td style="padding:2px 10px">{f.message}'
+                f'<td style="font-family:monospace;padding:2px 10px">{html.escape(f.column)}</td>'
+                f'<td style="padding:2px 10px">{html.escape(f.message)}'
                 f'<span style="color:#888">{sug}</span></td></tr>'
             )
         if not rows:
@@ -459,8 +469,8 @@ class ProfileReport:
         for _, r in self.summary.iterrows():
             spark = self._sparklines.get(r["column"], "")
             cols += (
-                f'<tr><td style="font-family:monospace;padding:2px 10px">{r["column"]}</td>'
-                f'<td style="padding:2px 10px;color:#888">{r["dtype"]}</td>'
+                f'<tr><td style="font-family:monospace;padding:2px 10px">{html.escape(str(r["column"]))}</td>'
+                f'<td style="padding:2px 10px;color:#888">{html.escape(str(r["dtype"]))}</td>'
                 f'<td style="font-family:monospace;padding:2px 10px">{spark}</td>'
                 f'<td style="padding:2px 10px">{r["missing_pct"]:.0f}%</td>'
                 f'<td style="padding:2px 10px">{r["cardinality"]:,}</td></tr>'
@@ -504,14 +514,14 @@ def profile(data, target: Optional[str] = None) -> ProfileReport:
             df = df.drop(columns=[target])
         else:
             warnings.warn(f"target {target!r} not found in columns; ignoring",
-                          stacklevel=2)
+                          PercentifyWarning, stacklevel=2)
 
     findings: list[Finding] = []
     for check in CHECKS:
         try:
             findings.extend(check(df, target_series))
         except Exception as exc:  # a broken check must never sink the report
-            warnings.warn(f"{check.__name__} failed: {exc}", stacklevel=2)
+            warnings.warn(f"{check.__name__} failed: {exc}", PercentifyWarning, stacklevel=2)
 
     findings.sort(key=lambda f: (_SEVERITY_ORDER[f.severity], f.column))
 

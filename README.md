@@ -55,6 +55,7 @@ One import, one line. A clean, sorted DataFrame you can read or feed into the ne
 
 | Function | What it answers |
 |---|---|
+| `profile` | What is wrong with this dataset, and how do I fix it? |
 | `change` | Growth as numbers, columns, or a whole series |
 | `vif` | Which features are collinear? |
 | `missing` | How much of each column is missing? |
