@@ -1,6 +1,6 @@
 # Documentation
 
-Every example on this page is real — the output shown is exactly what the function returns.
+Every example on this page is real: the output shown is exactly what the function returns.
 
 ## Installation
 
@@ -21,10 +21,10 @@ from percentify import change, vif, missing, cv, outliers, pca_variance, pca_loa
 A few rules hold across the whole library, so you always know what to expect:
 
 - **DataFrame in → DataFrame out.** Pass a DataFrame and you get a clean DataFrame back. Pass a single `Series` (where it makes sense) and you get a single number.
-- **Sorted worst-first.** Results come back ordered by what usually matters most — most collinear, most missing, most variable, most outliers.
+- **Sorted worst-first.** Results come back ordered by what usually matters most: most collinear, most missing, most variable, most outliers.
 - **`decimals` everywhere.** Every function accepts a `decimals` argument (default `2`). Pass `decimals=None` for full precision.
 - **Numeric-only functions ignore text columns.** They quietly skip non-numeric columns instead of crashing.
-- **Friendly warnings, not tracebacks.** Hand a function something it can't use (e.g. an all-text DataFrame) and you get a `PercentifyWarning` explaining why, plus an empty result — never a raw NumPy/pandas stack trace. See [Warnings](#warnings-and-non-numeric-data).
+- **Friendly warnings, not tracebacks.** Hand a function something it can't use (e.g. an all-text DataFrame) and you get a `PercentifyWarning` explaining why, plus an empty result, never a raw NumPy/pandas stack trace. See [Warnings](#warnings-and-non-numeric-data).
 
 ---
 
@@ -101,7 +101,7 @@ Pass `target=` to also check for **leakage** (features that predict the target a
 
 ## `change`
 
-Percentage change — as two numbers, between two columns, or down a whole series.
+Percentage change: as two numbers, between two columns, or down a whole series.
 
 !!! tip "Similar concept"
     `pandas.DataFrame.pct_change`
@@ -124,7 +124,7 @@ change(100, 150)
 50.0
 ```
 
-**Between two columns** (element-wise) — perfect for a new column:
+**Between two columns** (element-wise), perfect for a new column:
 
 ```python
 import pandas as pd
@@ -163,13 +163,13 @@ dtype: float64
 The first value is `NaN` because there is no prior period to compare against. Passing a whole `DataFrame` applies this to every numeric column at once.
 
 !!! note
-    Where `old` is `0`, the result is `0.0` (safe division). Two Series are aligned by **index**, not position — fine when both columns come from the same DataFrame.
+    Where `old` is `0`, the result is `0.0` (safe division). Two Series are aligned by **index**, not position, which is fine when both columns come from the same DataFrame.
 
 ---
 
 ## `vif`
 
-Variance Inflation Factor — the classic multicollinearity check, without the six-line loop.
+Variance Inflation Factor: the classic multicollinearity check, without the six-line loop.
 
 !!! tip "Similar concept"
     `statsmodels.stats.outliers_influence.variance_inflation_factor`
@@ -264,7 +264,7 @@ Unlike the numeric-only functions, `missing` reports on **every** column, text i
 
 ## `cv`
 
-Coefficient of variation — relative variability (`std ÷ mean`), as a percentage. Handy for comparing spread across columns on different scales.
+Coefficient of variation: relative variability (`std ÷ mean`), as a percentage. Handy for comparing spread across columns on different scales.
 
 !!! tip "Similar concept"
     `scipy.stats.variation`
@@ -393,7 +393,7 @@ pca_variance(df)
 2       PC3                2.62      100.00
 ```
 
-Read the `cumulative` column to decide how many components to keep — here PC1 + PC2 already capture 97.4% of the variance.
+Read the `cumulative` column to decide how many components to keep. Here, PC1 + PC2 already capture 97.4% of the variance.
 
 !!! warning "Standardization matters"
     By default `standardize=True`, so each column is scaled to unit variance first. This stops a column measured in large units (e.g. dollars) from dominating purely because of its scale. Pass `standardize=False` for covariance-based PCA on the raw values.
@@ -498,7 +498,7 @@ Pass a single column (`df["target"]`), not the whole DataFrame. Nulls are droppe
 
 ## `difference`
 
-Symmetric percentage difference between two values or two columns — how *far apart* they are, regardless of direction. (Reach for `change` when direction matters.)
+Symmetric percentage difference between two values or two columns: how *far apart* they are, regardless of direction. (Reach for `change` when direction matters.)
 
 !!! tip "Similar concept"
     `numpy` / `pandas` element-wise arithmetic
@@ -521,7 +521,7 @@ difference(10, 20)
 66.67
 ```
 
-**Two columns** (element-wise) — the average of the two values is the denominator, so `difference(a, b) == difference(b, a)`:
+**Two columns** (element-wise), using the average of the two values as the denominator, so `difference(a, b) == difference(b, a)`:
 
 ```python
 import pandas as pd
@@ -546,7 +546,7 @@ sensors
 
 ## `split`
 
-Distribute a total across weights, proportionally — allocation for budgets, quotas, or apportioning a sum by group.
+Distribute a total across weights, proportionally: allocation for budgets, quotas, or apportioning a sum by group.
 
 !!! tip "Similar concept"
     `numpy` / `pandas` weighted arithmetic
@@ -569,7 +569,7 @@ split(10000, [2, 3, 5])
 [2000.0, 3000.0, 5000.0]
 ```
 
-**A column of weights returns an aligned Series** — allocate a budget by population:
+**A column of weights returns an aligned Series**, allocating a budget by population:
 
 ```python
 import pandas as pd
@@ -596,7 +596,7 @@ Raises `ValueError` if `weights` is empty or sums to zero.
 
 ## `display`
 
-Format a number — or a whole column — as clean percentage strings. The "last mile" for reports, dashboards, and exports.
+Format a number, or a whole column, as clean percentage strings. The "last mile" for reports, dashboards, and exports.
 
 !!! tip "Similar concept"
     `pandas.Series.map` + Python string formatting
@@ -619,7 +619,7 @@ display(0.45, multiply=True)
 '45.0%'
 ```
 
-**A column returns a Series of strings** — turn ratios into report-ready text:
+**A column returns a Series of strings**, turning ratios into report-ready text:
 
 ```python
 import pandas as pd
@@ -660,6 +660,9 @@ PercentifyWarning: Numeric columns required: no numeric columns found. VIF
 measures multicollinearity between numeric features - encode any
 categorical/text columns first.
 ```
+
+!!! tip "Leave them on while you learn; switch them off when you ship"
+    Instead of a cryptic traceback, you get a friendly nudge about what percentify did and why, so one messy column never dents your momentum. In a trusted production pipeline, silence `PercentifyWarning` to keep your logs quiet.
 
 The warning is a normal Python warning, so you can catch or silence it:
 
