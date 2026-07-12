@@ -1,5 +1,5 @@
 site_name: Percentify
-site_description: A niche data science library that brings the 80% of daily data tasks to the forefront.
+site_description: Exploratory stats and data-quality diagnostics for pandas and Polars DataFrames. One call each.
 site_url: https://data-centt.github.io/percentify/
 repo_url: https://github.com/data-centt/percentify
 repo_name: data-centt/percentify

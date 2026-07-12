@@ -47,7 +47,7 @@ polars stays optional: it is only imported when you actually pass a polars objec
 
 ## `profiler`
 
-The flagship: a one-call **data diagnostician**. Instead of dumping statistics for every column, it runs a battery of checks, ranks the problems worst-first, scores the data's health, and tells you how to fix each issue. It composes the rest of the toolkit (`missing`, `imbalance`, and more) under one entry point.
+The flagship, a one-call **data diagnostician**. pandas `.describe()` tells you what your data *is*; `profiler()` tells you what to *do* about it: every issue ranked worst-first, each with its fix. Instead of dumping statistics for every column, it runs a battery of checks, scores the data's health, and composes the rest of the toolkit (`missing`, `imbalance`, and more) under one entry point.
 
 !!! tip "Similar concept"
     `ydata-profiling` / `pandas.DataFrame.describe`, but diagnostic (it ranks problems and suggests fixes) rather than descriptive.
@@ -93,6 +93,9 @@ The report renders as a compact, color-coded summary in notebooks and terminals,
 - `assert not report.errors`: drop it straight into a CI data-quality gate.
 
 Pass `target=` to also check for **leakage** (features that predict the target almost perfectly) and class imbalance. Accepts pandas or polars input.
+
+!!! example "Try it on your own data"
+    Point `profiler()` at any messy dataset you have lying around, pandas or Polars, and read the findings top to bottom. It is the fastest way to see what to fix before you model.
 
 ---
 

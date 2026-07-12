@@ -10,12 +10,31 @@
 [![Build Status](https://github.com/data-centt/percentify/actions/workflows/python-app.yml/badge.svg)](https://github.com/data-centt/percentify/actions/workflows/python-app.yml)
 [![Polars](https://img.shields.io/badge/Polars-supported-cd792c?style=flat)](https://data-centt.github.io/percentify/)
 
-**Percentify is a data science library that turns the 20% of data science operations behind 80% of daily work into single, readable function calls.**
+**80% of the checks you run on every dataset. 20% of the code.**
 
-**⚡ Full Polars DataFrame support:** pass a polars DataFrame or Series and get the same kind back, no flag needed.
+Exploratory stats and data-quality diagnostics for pandas and **Polars** DataFrames. One call each.
 
+> [!TIP]
+> **⚡ Polars is first-class, not an afterthought.** Pass a Polars DataFrame or Series and get the same kind straight back, with no flag and no manual conversion. Every function works on both backends, which is what sets Percentify apart from the pandas-only tools.
 
-Built on pandas and numpy, it pairs everyday hard to reach tools with lesser-known ones. Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
+Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
+
+## ⭐ The flagship: `profiler`
+
+**pandas `.describe()` tells you what your data _is_. `profiler()` tells you what to _do_ about it:** every issue ranked worst-first, each with its fix.
+
+```python
+from percentify import profiler
+
+report = profiler(df, target="churn")
+
+report.to_frame()          # every finding, ranked worst-first, with a suggested fix
+report.errors              # just the blocking issues
+report.health              # a 0 to 100 data-health score
+assert not report.errors   # drop it straight into a CI data-quality gate
+```
+
+Point it at any messy DataFrame, pandas or Polars, and see what it flags before you model. [Try it on your own data →](https://data-centt.github.io/percentify/documentation/#profiler)
 
 ## 📖 Documentation
 

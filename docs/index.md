@@ -4,13 +4,14 @@
 
 
 
-*The 20% of data science operations behind 80% of daily work: each a single, readable function call.*
+**80% of the checks you run on every dataset. 20% of the code.**
 
-**⚡ Full Polars DataFrame support:** pass a polars DataFrame or Series and get the same kind back, no flag needed.
+Exploratory stats and data-quality diagnostics for pandas and **Polars** DataFrames. One call each.
 
-Following the *Pareto principle*, Percentify brings the checks you run on every dataset to the forefront, one call at a time. No more digging through six-line recipes and hard-to-remember import paths.
+!!! tip "⚡ Polars is first-class, not an afterthought"
+    Pass a Polars DataFrame or Series and get the same kind straight back, with no flag and no manual conversion. Every function works on both backends, which is what sets Percentify apart from the pandas-only tools.
 
-Built on pandas and numpy, it pairs the everyday tools you reach for constantly with lesser-known ones worth knowing. Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
+Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
 
 ---
 
