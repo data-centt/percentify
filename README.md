@@ -28,7 +28,7 @@ Built on pandas and numpy, it pairs everyday hard to reach tools with lesser-kno
 pip install percentify
 ```
 
-Requires `numpy` and `pandas`.
+Requires Python 3.10+, `numpy`, and `pandas` 2.0+.
 
 ## Quick example
 

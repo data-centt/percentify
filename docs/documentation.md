@@ -8,7 +8,7 @@ Every example on this page is real — the output shown is exactly what the func
 pip install percentify
 ```
 
-Percentify requires `numpy` and `pandas`.
+Percentify requires Python 3.10+, `numpy`, and `pandas` 2.0+.
 
 ```python
 from percentify import change, vif, missing, cv, outliers, pca_variance, pca_loadings

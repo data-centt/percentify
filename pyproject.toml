@@ -9,14 +9,18 @@ description = "One import, one line — the everyday data science checks (VIF, P
 authors = [{ name = "Daniel Emakporuena", email = "danielemakporuena1@gmail.com" }]
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 dependencies = [
     "numpy",
-    "pandas",
+    "pandas>=2.0",
 ]
 keywords = ["data-science", "statistics", "pandas", "eda", "multicollinearity", "vif", "pca", "outliers", "data-analysis"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]

@@ -10,29 +10,54 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-
-      - name: Install deps and package
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e . pytest flake8
-          # polars + pyarrow are optional; installed so the polars backend tests run
-          python -m pip install polars pyarrow
-
+          python-version: "3.11"
+      - name: Install flake8
+        run: python -m pip install --upgrade pip flake8
       - name: Lint with flake8
         run: |
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
+  test:
+    runs-on: ubuntu-latest
+    name: test (py${{ matrix.python-version }}, pandas ${{ matrix.pandas }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Python version coverage, on the latest dependencies.
+          - { python-version: "3.10", pandas: latest, pin: "" }
+          - { python-version: "3.11", pandas: latest, pin: "" }
+          - { python-version: "3.12", pandas: latest, pin: "" }
+          - { python-version: "3.13", pandas: latest, pin: "" }
+          # pandas version coverage, on a stable Python.
+          - { python-version: "3.11", pandas: "2.0.3", pin: "pandas==2.0.3 numpy==1.26.4" }
+          - { python-version: "3.11", pandas: "2.1.4", pin: "pandas==2.1.4 numpy==1.26.4" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "${{ matrix.python-version }}"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Pin dependency versions
+        if: matrix.pin != ''
+        run: python -m pip install ${{ matrix.pin }}
+
+      - name: Install package and test tools
+        # polars requires Python 3.10+; pyarrow powers the polars <-> pandas bridge.
+        run: python -m pip install -e . pytest polars pyarrow
+
       - name: Test with pytest
-        run: |
-          pytest -q
+        run: pytest -q

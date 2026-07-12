@@ -20,7 +20,7 @@ Built on pandas and numpy, it pairs the everyday tools you reach for constantly 
 pip install percentify
 ```
 
-Requires `numpy` and `pandas`.
+Requires Python 3.10+, `numpy`, and `pandas` 2.0+.
 
 ## A quick taste
 
