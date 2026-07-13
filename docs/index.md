@@ -64,6 +64,11 @@ One import, one line. A clean, sorted DataFrame you can read or feed straight in
 | `pca_variance` | How much variance does each principal component explain? |
 | `pca_loadings` | What does each principal component consist of? |
 | `imbalance` | How skewed are the classes in a target column? |
+| `correlate` | Which features move together, and is it significant? |
+| `skew_report` | How skewed is each column, and what transform helps? |
+| `bootstrap_ci` | What is the confidence interval for a statistic? |
+| `permutation_test` | Are two groups really different? (a p-value) |
+| `effect_size` | How big is the difference, not just whether it is significant? |
 | `difference` | How far apart are two values or columns (regardless of direction)? |
 | `split` | How does a total divide across weights or groups? |
 | `display` | Format numbers or a column as clean "%" strings for reports. |

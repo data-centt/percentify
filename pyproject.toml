@@ -13,6 +13,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "pandas>=2.0",
+    "scipy",
 ]
 keywords = ["data-science", "statistics", "pandas", "eda", "multicollinearity", "vif", "pca", "outliers", "data-analysis"]
 classifiers = [

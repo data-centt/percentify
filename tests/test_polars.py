@@ -6,6 +6,7 @@ import pandas as pd  # noqa: E402
 from percentify import (  # noqa: E402
     change, vif, missing, cv, outliers,
     pca_variance, pca_loadings, imbalance, difference, split, display,
+    correlate, skew_report, bootstrap_ci, permutation_test, effect_size,
 )
 
 
@@ -127,6 +128,53 @@ def test_imbalance_polars_with_summary():
     assert summary["majority_class"] == "No"
     assert summary["minority_class"] == "Yes"
     assert summary["imbalance_ratio"] == 5.67
+
+
+# ===== inferential functions =====
+
+def test_correlate_polars_dataframe():
+    np.random.seed(0)
+    base = np.random.randn(100)
+    df = pl.DataFrame({"a": base, "b": base + np.random.randn(100) * 0.01, "c": np.random.randn(100)})
+    result = correlate(df)
+    assert isinstance(result, pl.DataFrame)
+    assert result.columns == ["feature_1", "feature_2", "r", "p"]
+
+
+def test_correlate_polars_two_series_tuple():
+    r, p = correlate(pl.Series(range(50)), pl.Series(range(50)))
+    assert isinstance(r, float)
+    assert r == 1.0
+
+
+def test_skew_report_polars():
+    np.random.seed(0)
+    df = pl.DataFrame({"income": np.random.exponential(1, 300), "sym": np.random.randn(300)})
+    result = skew_report(df)
+    assert isinstance(result, pl.DataFrame)
+    assert result.columns == ["feature", "skew", "kurtosis", "outlier_pct", "suggested_transform"]
+
+
+def test_bootstrap_ci_polars_series():
+    result = bootstrap_ci(pl.Series([1.0, 2, 3, 4, 5, 6, 7, 8, 9, 10]), random_state=0)
+    assert isinstance(result, tuple)
+    assert result[0] <= result[1]
+
+
+def test_permutation_test_polars():
+    result = permutation_test(pl.Series([1.0, 2, 3, 4]), pl.Series([5.0, 6, 7, 8]), random_state=0)
+    assert isinstance(result, float)
+
+
+def test_effect_size_polars():
+    np.random.seed(0)
+    df = pl.DataFrame({
+        "g": ["A"] * 50 + ["B"] * 50,
+        "v": np.concatenate([np.random.randn(50), np.random.randn(50) + 1]),
+    })
+    result = effect_size(df, group="g", value="v")
+    assert isinstance(result, pl.DataFrame)
+    assert "cohen_d" in result.columns
 
 
 # ===== regression: pandas in still returns pandas =====

@@ -523,6 +523,295 @@ def imbalance(data, decimals: Optional[int] = 2) -> pd.DataFrame:
     return result
 
 
+def _mean_diff(x, y):
+    return float(np.mean(x) - np.mean(y))
+
+
+def _suggest_transform(skew, series):
+    if not np.isfinite(skew) or abs(skew) <= 0.5:
+        return "none"
+    if skew > 0.5 and series.min() >= 0:
+        return "log1p"
+    return "yeo-johnson"
+
+
+def _interpret_d(d):
+    if d < 0.2:
+        return "negligible"
+    if d < 0.5:
+        return "small"
+    if d < 0.8:
+        return "medium"
+    return "large"
+
+
+def _interpret_h(h):
+    if h < 0.2:
+        return "small"
+    if h < 0.5:
+        return "medium"
+    return "large"
+
+
+@_backend_aware
+def correlate(a, b=None, method: str = "pearson", decimals: Optional[int] = 2):
+    """
+    Correlation with p-values, the piece pandas' df.corr() leaves out.
+
+    - Two Series: returns a (correlation, p_value) tuple.
+    - A DataFrame: returns a tidy table of every numeric pair, strongest first,
+      with columns ["feature_1", "feature_2", "r", "p"].
+
+    Args:
+        a: A Series (with b) or a DataFrame (matrix mode).
+        b: The second Series for a pairwise correlation.
+        method: "pearson" (linear) or "spearman" (rank / monotonic).
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        A (r, p) tuple for two Series, or a DataFrame for a DataFrame.
+    """
+    from scipy import stats
+
+    corr_fns = {"pearson": stats.pearsonr, "spearman": stats.spearmanr}
+    if method not in corr_fns:
+        raise ValueError("method must be 'pearson' or 'spearman'.")
+    corr_fn = corr_fns[method]
+
+    if isinstance(a, pd.Series):
+        if b is None:
+            raise ValueError("correlate needs a second Series, or pass a DataFrame.")
+        pair = pd.DataFrame({"a": a, "b": b}).apply(pd.to_numeric, errors="coerce").dropna()
+        if len(pair) < 3:
+            _warn("correlate needs at least 3 complete numeric pairs. Returning NaN.")
+            return (float("nan"), float("nan"))
+        r, p = corr_fn(pair["a"].to_numpy(), pair["b"].to_numpy())
+        return (_round(float(r), decimals), _round(float(p), decimals))
+
+    if not isinstance(a, pd.DataFrame):
+        raise TypeError(f"correlate expects a Series or DataFrame, got {type(a).__name__}.")
+
+    numeric = a.select_dtypes(include=[np.number])
+    empty = pd.DataFrame(columns=["feature_1", "feature_2", "r", "p"])
+    cols = numeric.columns.tolist()
+    if len(cols) < 2:
+        _warn("Numeric columns required: correlate needs at least 2 numeric columns.")
+        return empty
+
+    rows = []
+    for i, c1 in enumerate(cols):
+        for c2 in cols[i + 1:]:
+            pair = numeric[[c1, c2]].dropna()
+            x, y = pair[c1].to_numpy(), pair[c2].to_numpy()
+            if len(pair) < 3 or np.std(x) == 0 or np.std(y) == 0:
+                continue
+            r, p = corr_fn(x, y)
+            rows.append((c1, c2, _round(float(r), decimals), _round(float(p), decimals)))
+
+    result = pd.DataFrame(rows, columns=["feature_1", "feature_2", "r", "p"])
+    if result.empty:
+        return result
+    return result.loc[result["r"].abs().sort_values(ascending=False).index].reset_index(drop=True)
+
+
+@_backend_aware
+def skew_report(df: pd.DataFrame, decimals: Optional[int] = 2) -> pd.DataFrame:
+    """
+    Distribution shape per numeric column: skew, kurtosis, outlier percentage,
+    and a suggested transform. Most-skewed first.
+
+    Args:
+        df: DataFrame with numeric columns.
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        DataFrame with columns
+        ["feature", "skew", "kurtosis", "outlier_pct", "suggested_transform"].
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"skew_report expects a pandas DataFrame, got {type(df).__name__}.")
+
+    numeric = df.select_dtypes(include=[np.number])
+    empty = pd.DataFrame(
+        columns=["feature", "skew", "kurtosis", "outlier_pct", "suggested_transform"])
+    if numeric.shape[1] == 0:
+        _warn("Numeric columns required: no numeric columns found for skew_report.")
+        return empty
+
+    out_df = outliers(numeric, decimals=decimals)
+    out_map = dict(zip(out_df["feature"], out_df["outlier_pct"]))
+
+    rows = []
+    for col in numeric.columns:
+        s = numeric[col].dropna()
+        if len(s) < 3:
+            sk = kt = float("nan")
+        else:
+            sk, kt = float(s.skew()), float(s.kurt())
+        rows.append({
+            "feature": col,
+            "skew": _round(sk, decimals),
+            "kurtosis": _round(kt, decimals),
+            "outlier_pct": out_map.get(col, 0.0),
+            "suggested_transform": _suggest_transform(sk, s),
+        })
+
+    result = pd.DataFrame(rows)
+    order = result["skew"].abs().sort_values(ascending=False, na_position="last").index
+    return result.loc[order].reset_index(drop=True)
+
+
+@_backend_aware
+def bootstrap_ci(data, statistic=None, ci: float = 95, n_resamples: int = 1000,
+                 decimals: Optional[int] = 2, random_state=None):
+    """
+    Bootstrap confidence interval for a statistic, with no distribution assumed.
+
+    Resamples the data with replacement and reads the percentiles of the
+    resampled statistic.
+
+    Args:
+        data: A Series or array of values.
+        statistic: Function applied to each resample (default: mean).
+        ci: Confidence level as a percentage (default 95).
+        n_resamples: Number of bootstrap resamples.
+        decimals: Number of decimal places to round to.
+        random_state: Seed for reproducibility.
+
+    Returns:
+        A (low, high) tuple.
+    """
+    if statistic is None:
+        statistic = np.mean
+
+    values = pd.to_numeric(pd.Series(data), errors="coerce").dropna().to_numpy(dtype=float)
+    if len(values) < 2:
+        _warn("bootstrap_ci needs at least 2 numeric values. Returning (NaN, NaN).")
+        return (float("nan"), float("nan"))
+
+    rng = np.random.default_rng(random_state)
+    n = len(values)
+    resampled = np.array([statistic(values[rng.integers(0, n, n)]) for _ in range(n_resamples)])
+
+    alpha = (100 - ci) / 2
+    low, high = np.percentile(resampled, [alpha, 100 - alpha])
+    return (_round(float(low), decimals), _round(float(high), decimals))
+
+
+@_backend_aware
+def permutation_test(a, b, statistic=None, n_permutations: int = 1000,
+                     decimals: Optional[int] = 4, random_state=None) -> float:
+    """
+    Permutation test for a difference between two samples. Returns a two-sided
+    p-value (a number, not a verdict).
+
+    Args:
+        a, b: The two samples (Series or arrays).
+        statistic: Function of (group_a, group_b) measuring the effect
+            (default: difference in means).
+        n_permutations: Number of label shuffles.
+        decimals: Number of decimal places to round to.
+        random_state: Seed for reproducibility.
+
+    Returns:
+        float: the p-value.
+    """
+    if statistic is None:
+        statistic = _mean_diff
+
+    a = pd.to_numeric(pd.Series(a), errors="coerce").dropna().to_numpy(dtype=float)
+    b = pd.to_numeric(pd.Series(b), errors="coerce").dropna().to_numpy(dtype=float)
+    if len(a) < 2 or len(b) < 2:
+        _warn("permutation_test needs at least 2 numeric values per group. Returning NaN.")
+        return float("nan")
+
+    observed = abs(statistic(a, b))
+    combined = np.concatenate([a, b])
+    n_a = len(a)
+    rng = np.random.default_rng(random_state)
+
+    count = 0
+    for _ in range(n_permutations):
+        rng.shuffle(combined)
+        if abs(statistic(combined[:n_a], combined[n_a:])) >= observed:
+            count += 1
+    return _round(float((count + 1) / (n_permutations + 1)), decimals)
+
+
+@_backend_aware
+def effect_size(df: pd.DataFrame, group: str, value: str, decimals: Optional[int] = 2) -> pd.DataFrame:
+    """
+    Effect size between two groups: the practical size of a difference, not just
+    whether it is statistically significant.
+
+    Detects the outcome type automatically:
+    - Numeric value: Cohen's d, Hedges' g, and the mean difference.
+    - Binary value (two levels): Cohen's h and the percentage lift.
+
+    Args:
+        df: DataFrame containing the group and value columns.
+        group: Column naming the two groups to compare.
+        value: The outcome column.
+        decimals: Number of decimal places to round to.
+
+    Returns:
+        A one-row DataFrame of effect-size metrics with an interpretation.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"effect_size expects a pandas DataFrame, got {type(df).__name__}.")
+    for col in (group, value):
+        if col not in df.columns:
+            _warn(f"Column {col!r} not found. Returning empty.")
+            return pd.DataFrame()
+
+    data = df[[group, value]].dropna()
+    levels = data[group].unique().tolist()
+    if len(levels) != 2:
+        _warn(f"effect_size compares exactly 2 groups, but {group!r} has {len(levels)}. "
+              "Returning empty.")
+        return pd.DataFrame()
+
+    g1, g2 = levels
+    a = data[data[group] == g1][value]
+    b = data[data[group] == g2][value]
+    if len(a) < 2 or len(b) < 2:
+        _warn("effect_size needs at least 2 observations per group. Returning empty.")
+        return pd.DataFrame()
+
+    # Binary outcome (two levels): Cohen's h + lift.
+    if data[value].nunique() == 2:
+        positive = sorted(data[value].unique().tolist())[-1]
+        p1, p2 = float((a == positive).mean()), float((b == positive).mean())
+        h = abs(2 * np.arcsin(np.sqrt(p1)) - 2 * np.arcsin(np.sqrt(p2)))
+        lift = (p1 - p2) / p2 * 100.0 if p2 != 0 else float("inf")
+        return pd.DataFrame([{
+            "comparison": f"{g1} vs {g2}",
+            "cohen_h": _round(float(h), decimals),
+            "lift_pct": _round(float(lift), decimals),
+            "interpretation": _interpret_h(h),
+        }])
+
+    if not pd.api.types.is_numeric_dtype(data[value]):
+        _warn(f"value column {value!r} is neither numeric nor binary; "
+              "effect_size needs one of those. Returning empty.")
+        return pd.DataFrame()
+
+    # Numeric outcome: Cohen's d, Hedges' g, mean difference.
+    x, y = a.to_numpy(dtype=float), b.to_numpy(dtype=float)
+    n1, n2 = len(x), len(y)
+    mean_diff = float(np.mean(x) - np.mean(y))
+    pooled = np.sqrt(((n1 - 1) * np.var(x, ddof=1) + (n2 - 1) * np.var(y, ddof=1)) / (n1 + n2 - 2))
+    d = mean_diff / pooled if pooled != 0 else 0.0
+    g = d * (1 - 3 / (4 * (n1 + n2) - 9))
+    return pd.DataFrame([{
+        "comparison": f"{g1} vs {g2}",
+        "cohen_d": _round(float(d), decimals),
+        "hedges_g": _round(float(g), decimals),
+        "mean_diff": _round(mean_diff, decimals),
+        "interpretation": _interpret_d(abs(d)),
+    }])
+
+
 @_backend_aware
 def difference(a, b, decimals: Optional[int] = 2):
     """

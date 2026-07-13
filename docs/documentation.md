@@ -496,6 +496,204 @@ Pass a single column (`df["target"]`), not the whole DataFrame. Nulls are droppe
 
 ---
 
+## `correlate`
+
+Correlation with p-values, the piece `df.corr()` leaves out. Pass two Series for a single `(r, p)`, or a whole DataFrame for a tidy table of every numeric pair, strongest first.
+
+!!! tip "Similar concept"
+    `scipy.stats.pearsonr` / `scipy.stats.spearmanr`
+
+**Signature**
+
+```python
+correlate(a, b=None, method="pearson", decimals=2)
+```
+
+**Two columns return `(r, p)`**
+
+```python
+import numpy as np, pandas as pd
+from percentify import correlate
+
+np.random.seed(7)
+base = np.random.randn(200)
+df = pd.DataFrame({
+    "age":    base,
+    "income": base * 2 + np.random.randn(200) * 0.3,   # tracks age
+    "score":  np.random.randn(200),
+})
+
+correlate(df["age"], df["income"])   # (0.99, 0.0)
+```
+
+**A DataFrame returns a ranked table**
+
+```python
+correlate(df)
+```
+
+```text
+feature_1 feature_2    r    p
+      age    income 0.99 0.00
+      age     score 0.05 0.49
+   income     score 0.05 0.49
+```
+
+Pass `method="spearman"` for rank (monotonic) correlation.
+
+---
+
+## `skew_report`
+
+Distribution shape for every numeric column: skew, kurtosis, outlier percentage, and a suggested transform. Most-skewed first.
+
+!!! tip "Similar concept"
+    `pandas.DataFrame.skew` + `pandas.DataFrame.kurt`
+
+**Signature**
+
+```python
+skew_report(df, decimals=2)
+```
+
+**Example**
+
+```python
+import numpy as np, pandas as pd
+from percentify import skew_report
+
+np.random.seed(1)
+df = pd.DataFrame({
+    "income": np.random.exponential(2, 500),      # right-skewed
+    "age":    np.random.normal(40, 10, 500),      # roughly symmetric
+})
+
+skew_report(df)
+```
+
+```text
+feature  skew  kurtosis  outlier_pct suggested_transform
+ income  1.55      2.77          3.8               log1p
+    age -0.01      0.24          0.8                none
+```
+
+`suggested_transform` is a starting point: `log1p` for right-skewed non-negative data, `yeo-johnson` for skew with negatives, and `none` when a column is already roughly symmetric. The `outlier_pct` column reuses [`outliers`](#outliers).
+
+---
+
+## `bootstrap_ci`
+
+A confidence interval for any statistic, with no distribution assumed. It resamples the data with replacement and reads the percentiles of the resampled statistic.
+
+!!! tip "Similar concept"
+    `scipy.stats.bootstrap`
+
+**Signature**
+
+```python
+bootstrap_ci(data, statistic=np.mean, ci=95, n_resamples=1000, decimals=2, random_state=None)
+```
+
+**Example**
+
+```python
+import numpy as np
+from percentify import bootstrap_ci
+
+np.random.seed(1)
+income = np.random.exponential(2, 500)
+
+bootstrap_ci(income, random_state=0)   # (1.88, 2.22)
+```
+
+Pass any `statistic` (for example `np.median`), change the level with `ci`, and set `random_state` for a reproducible interval.
+
+---
+
+## `permutation_test`
+
+A distribution-free p-value for the difference between two samples. It shuffles the group labels many times and asks how often chance alone produces a difference as large as the one you saw.
+
+!!! tip "Similar concept"
+    `scipy.stats.permutation_test`
+
+**Signature**
+
+```python
+permutation_test(a, b, statistic=None, n_permutations=1000, decimals=4, random_state=None)
+```
+
+**Example**
+
+```python
+import numpy as np
+from percentify import permutation_test
+
+np.random.seed(1)
+a = np.random.normal(100, 15, 120)
+b = np.random.normal(106, 15, 120)
+
+permutation_test(a, b, random_state=0)   # 0.001
+```
+
+The default statistic is the difference in means; pass your own `statistic(a, b)` for anything else. It returns the number, not a pass or fail verdict, so the judgement stays with you.
+
+---
+
+## `effect_size`
+
+How big is the difference, not just whether it is significant. It detects the outcome type and reports the right measure.
+
+!!! tip "Similar concept"
+    `pingouin.compute_effsize`
+
+**Signature**
+
+```python
+effect_size(df, group, value, decimals=2)
+```
+
+**Numeric outcome: Cohen's d, Hedges' g, mean difference**
+
+```python
+import numpy as np, pandas as pd
+from percentify import effect_size
+
+np.random.seed(1)
+df = pd.DataFrame({
+    "variant": ["A"] * 500 + ["B"] * 500,
+    "revenue": np.concatenate([np.random.normal(100, 20, 500),
+                               np.random.normal(112, 20, 500)]),
+})
+
+effect_size(df, group="variant", value="revenue")
+```
+
+```text
+comparison  cohen_d  hedges_g  mean_diff interpretation
+    A vs B    -0.58     -0.58     -11.42         medium
+```
+
+**Binary outcome (two levels): Cohen's h and lift**
+
+```python
+ab = pd.DataFrame({
+    "variant":   ["A"] * 100 + ["B"] * 100,
+    "converted": [1] * 35 + [0] * 65 + [1] * 20 + [0] * 80,
+})
+
+effect_size(ab, group="variant", value="converted")
+```
+
+```text
+comparison  cohen_h  lift_pct interpretation
+    A vs B     0.34      75.0         medium
+```
+
+The `interpretation` column labels the magnitude (negligible / small / medium / large), so a raw number is never left without context.
+
+---
+
 ## `difference`
 
 Symmetric percentage difference between two values or two columns: how *far apart* they are, regardless of direction. (Reach for `change` when direction matters.)
