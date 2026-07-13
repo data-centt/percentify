@@ -11,4 +11,4 @@ __all__ = [
     "correlate", "skew_report", "bootstrap_ci", "permutation_test", "effect_size",
     "difference", "split", "display", "PercentifyWarning",
 ]
-__version__ = "1.0.0"
+__version__ = "1.0.1"
