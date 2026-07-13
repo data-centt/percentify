@@ -130,8 +130,83 @@ def _encode_target(target: pd.Series) -> tuple[np.ndarray, bool]:
     return codes.astype(float), True
 
 
+def _summarize(df: pd.DataFrame):
+    """Per-column (dtype, missing %, cardinality) summary plus sparklines."""
+    n = len(df)
+    rows, sparks = [], {}
+    for col in df.columns:
+        rows.append({
+            "column": col,
+            "dtype": str(df[col].dtype),
+            "missing_pct": float(df[col].isna().mean() * 100) if n else 0.0,
+            "cardinality": int(df[col].nunique(dropna=True)),
+        })
+        if pd.api.types.is_numeric_dtype(df[col]) and not pd.api.types.is_bool_dtype(df[col]):
+            sparks[col] = _sparkline(df[col])
+    cols = ["column", "dtype", "missing_pct", "cardinality"]
+    return pd.DataFrame(rows, columns=cols), sparks
+
+
+def _target_info(series: pd.Series):
+    """Return (inferred_role, balance_or_shape) for a target column.
+
+    Many distinct values means a continuous target, not classification. That
+    holds for numeric columns and for "scattered" continuous data that arrived
+    as object/string (numbers stored as text): we coerce to numeric so those
+    report a skew instead of a meaningless class breakdown.
+    """
+    is_bool = pd.api.types.is_bool_dtype(series)
+    is_num = pd.api.types.is_numeric_dtype(series) and not is_bool
+    is_text = (pd.api.types.is_object_dtype(series)
+               or pd.api.types.is_string_dtype(series))
+    n_distinct = int(series.nunique(dropna=True))
+
+    if (is_num or is_text) and n_distinct > 20:
+        # Coerce object/string to numbers so scattered data stored as text is
+        # scored as regression rather than crashing on .skew() or falling
+        # through to a bogus class breakdown.
+        numeric = series if is_num else pd.to_numeric(series, errors="coerce")
+        clean = numeric.dropna()
+        non_null = int(series.notna().sum())
+        mostly_numeric = bool(non_null) and clean.size / non_null >= 0.9
+        if is_num or mostly_numeric:
+            skew = float(clean.skew()) if clean.size >= 3 else float("nan")
+            return "regression", (f"skew {skew:+.2f}" if np.isfinite(skew) else "n/a")
+        # High-cardinality text that is not numeric: not a clean class target.
+        return "regression", f"{n_distinct} distinct values, further diagnostic required"
+
+    result = imbalance(series)
+    summary = result.attrs.get("summary", {})
+    if summary.get("n_classes", 0) < 2:
+        return "classification", "single class" if summary.get("n_classes") == 1 else "n/a"
+    pct = dict(zip(result["class"].tolist(), result["pct"].tolist()))
+    maj, minr = summary["majority_class"], summary["minority_class"]
+    balance = (f"majority '{maj}' {pct.get(maj, 0):.0f}%, "
+               f"minority '{minr}' {pct.get(minr, 0):.0f}%, "
+               f"ratio {summary['imbalance_ratio']:.1f}x")
+    return "classification", balance
+
+
+def _summarize_target(targets: dict) -> pd.DataFrame:
+    """Target-specific summary: role, missing, distinct, and balance/shape."""
+    rows = []
+    for name, series in targets.items():
+        role, balance = _target_info(series)
+        n = len(series)
+        rows.append({
+            "column": name,
+            "dtype": str(series.dtype),
+            "inferred_role": role,
+            "missing_pct": float(series.isna().mean() * 100) if n else 0.0,
+            "cardinality": int(series.nunique(dropna=True)),
+            "balance": balance,
+        })
+    cols = ["column", "dtype", "inferred_role", "missing_pct", "cardinality", "balance"]
+    return pd.DataFrame(rows, columns=cols)
+
+
 # --------------------------------------------------------------------------- #
-# Checks — each takes (df, target_series_or_None) and returns a list[Finding]
+# Checks — each takes (df, targets_dict) and returns a list[Finding]
 # --------------------------------------------------------------------------- #
 def check_missing(df: pd.DataFrame, target) -> list[Finding]:
     out: list[Finding] = []
@@ -174,7 +249,7 @@ def check_id_like(df: pd.DataFrame, target) -> list[Finding]:
                                 or _is_textual_dtype(df[col].dtype)):
             out.append(Finding(col, "warning", "id_like",
                                f"identifier-like ({nun}/{n} unique)",
-                               "drop before modeling"))
+                               "further diagnostic required"))
     return out
 
 
@@ -294,73 +369,79 @@ def check_collinearity(df: pd.DataFrame, target) -> list[Finding]:
     return out
 
 
-def check_leakage(df: pd.DataFrame, target) -> list[Finding]:
-    """Flag features that predict the target almost perfectly."""
-    if target is None:
+def check_leakage(df: pd.DataFrame, targets) -> list[Finding]:
+    """Flag features that predict a target almost perfectly."""
+    if not targets:
         return []
-    y, y_is_cat = _encode_target(target)
     out: list[Finding] = []
     n = len(df)
     numeric_cols = set(_numeric_columns(df))
     text_cols = set(_text_columns(df))
+    named = len(targets) > 1  # name the target only when there is more than one
 
-    for col in df.columns:
-        s = df[col]
-        # Numeric feature: near-perfect linear association with the target.
-        if col in numeric_cols:
-            mask = s.notna().to_numpy() & np.isfinite(y)
-            if mask.sum() < 10:
-                continue
-            x = s.to_numpy(dtype=float)[mask]
-            yy = y[mask]
-            if np.std(x) == 0 or np.std(yy) == 0:
-                continue
-            r = abs(np.corrcoef(x, yy)[0, 1])
-            if np.isfinite(r) and r > 0.98:
-                out.append(Finding(col, "error", "leakage",
-                                   f"predicts the target (|r|={r:.2f})",
-                                   "likely leakage, confirm it is known at predict time"))
-        # Categorical feature: does it almost perfectly determine the target?
-        elif y_is_cat and col in text_cols:
-            nun = s.nunique(dropna=True)
-            if nun <= 1 or nun >= 0.5 * n:
-                continue  # constant or id-like handled elsewhere
-            tmp = pd.DataFrame({"f": s.astype("object"), "y": y})
-            tmp = tmp.dropna()
-            if len(tmp) < 10:
-                continue
-            purity = (tmp.groupby("f")["y"]
-                      .agg(lambda g: g.value_counts(normalize=True).max())
-                      * tmp.groupby("f").size() / len(tmp)).sum()
-            if purity > 0.995:
-                out.append(Finding(col, "error", "leakage",
-                                   f"almost perfectly determines the target "
-                                   f"(purity {purity:.2f})",
-                                   "likely leakage, confirm it is known at predict time"))
+    for tname, tseries in targets.items():
+        y, y_is_cat = _encode_target(tseries)
+        label = f" '{tname}'" if named else ""
+        for col in df.columns:
+            s = df[col]
+            # Numeric feature: near-perfect linear association with the target.
+            if col in numeric_cols:
+                mask = s.notna().to_numpy() & np.isfinite(y)
+                if mask.sum() < 10:
+                    continue
+                x = s.to_numpy(dtype=float)[mask]
+                yy = y[mask]
+                if np.std(x) == 0 or np.std(yy) == 0:
+                    continue
+                r = abs(np.corrcoef(x, yy)[0, 1])
+                if np.isfinite(r) and r > 0.98:
+                    out.append(Finding(col, "error", "leakage",
+                                       f"predicts the target{label} (|r|={r:.2f})",
+                                       "likely leakage, confirm it is known at predict time"))
+            # Categorical feature: does it almost perfectly determine the target?
+            elif y_is_cat and col in text_cols:
+                nun = s.nunique(dropna=True)
+                if nun <= 1 or nun >= 0.5 * n:
+                    continue  # constant or id-like handled elsewhere
+                tmp = pd.DataFrame({"f": s.astype("object"), "y": y}).dropna()
+                if len(tmp) < 10:
+                    continue
+                purity = (tmp.groupby("f")["y"]
+                          .agg(lambda g: g.value_counts(normalize=True).max())
+                          * tmp.groupby("f").size() / len(tmp)).sum()
+                if purity > 0.995:
+                    out.append(Finding(col, "error", "leakage",
+                                       f"almost perfectly determines the target{label} "
+                                       f"(purity {purity:.2f})",
+                                       "likely leakage, confirm it is known at predict time"))
     return out
 
 
-def check_target_imbalance(df: pd.DataFrame, target) -> list[Finding]:
-    if target is None:
+def check_target_imbalance(df: pd.DataFrame, targets) -> list[Finding]:
+    if not targets:
         return []
-    if pd.api.types.is_numeric_dtype(target) and target.nunique(dropna=True) > 20:
-        return []  # treat as continuous
-    # Reuse the package's imbalance() rather than re-deriving the class balance.
-    result = imbalance(target)
-    summary = result.attrs.get("summary", {})
-    if summary.get("n_classes", 0) < 2:
-        return []
-    minority = summary["minority_class"]
-    min_pct = dict(zip(result["class"].tolist(), result["pct"].tolist())).get(minority)
-    if min_pct is not None and min_pct < 5.0:
-        return [Finding("<target>", "info", "imbalance",
-                        f"class '{minority}' is only {min_pct:.1f}% of rows",
-                        "consider resampling or class weights")]
-    return []
+    out: list[Finding] = []
+    named = len(targets) > 1
+    for tname, tseries in targets.items():
+        if pd.api.types.is_numeric_dtype(tseries) and tseries.nunique(dropna=True) > 20:
+            continue  # treat as continuous
+        # Reuse the package's imbalance() rather than re-deriving the class balance.
+        result = imbalance(tseries)
+        summary = result.attrs.get("summary", {})
+        if summary.get("n_classes", 0) < 2:
+            continue
+        minority = summary["minority_class"]
+        min_pct = dict(zip(result["class"].tolist(), result["pct"].tolist())).get(minority)
+        if min_pct is not None and min_pct < 5.0:
+            col_label = f"<target: {tname}>" if named else "<target>"
+            out.append(Finding(col_label, "info", "imbalance",
+                               f"class '{minority}' is only {min_pct:.1f}% of rows",
+                               "consider resampling or class weights"))
+    return out
 
 
 # Order here is only the registry order; findings are re-sorted by severity.
-CHECKS: list[Callable[[pd.DataFrame, Optional[pd.Series]], list[Finding]]] = [
+CHECKS: list[Callable[[pd.DataFrame, dict], list[Finding]]] = [
     check_missing,
     check_constant,
     check_id_like,
@@ -386,7 +467,8 @@ class ProfileReport:
     n_cols: int
     findings: list[Finding]
     summary: pd.DataFrame
-    target: Optional[str] = None
+    target: list = field(default_factory=list)
+    target_summary: Optional[pd.DataFrame] = None
     _sparklines: dict = field(default_factory=dict, repr=False)
 
     # -- filtered views ---------------------------------------------------- #
@@ -422,72 +504,155 @@ class ProfileReport:
     # -- rendering --------------------------------------------------------- #
     def _header(self) -> str:
         e, w, i = len(self.errors), len(self.warnings), len(self.infos)
-        return (f"{self.n_rows:,} rows \u00d7 {self.n_cols} cols  \u00b7  "
-                f"health {self.health}/100  \u00b7  "
-                f"\u2717 {e} errors  \u26a0 {w} warnings  \u2139 {i} info")
+        parts = [f"{self.n_rows:,} rows \u00d7 {self.n_cols} cols"]
+        if self.target:
+            label = "target" if len(self.target) == 1 else "targets"
+            parts.append(f"{label}: {', '.join(map(str, self.target))}")
+        parts.append(f"health {self.health}/100")
+        parts.append(f"\u2717 {e} errors  \u26a0 {w} warnings  \u2139 {i} info")
+        return "  \u00b7  ".join(parts)
+
+    def _text_table(self, summary) -> list:
+        lines = [f"{'Column':<20} {'Type':<8} {'Distribution':<14} "
+                 f"{'Missing':>8} {'Distinct':>10}"]
+        for _, row in summary.iterrows():
+            spark = self._sparklines.get(row["column"], "")
+            miss = f"{row['missing_pct']:.0f}%"
+            lines.append(
+                f"{str(row['column'])[:20]:<20} {str(row['dtype'])[:8]:<8} "
+                f"{spark:<14} {miss:>8} {row['cardinality']:>10,}"
+            )
+        return lines
+
+    def _target_text_table(self, summary) -> list:
+        lines = [f"{'Column':<16} {'Type':<8} {'Inferred Role':<15} "
+                 f"{'Missing':>8} {'Distinct':>9}  Balance / shape"]
+        for _, row in summary.iterrows():
+            miss = f"{row['missing_pct']:.0f}%"
+            lines.append(
+                f"{str(row['column'])[:16]:<16} {str(row['dtype'])[:8]:<8} "
+                f"{str(row['inferred_role']):<15} {miss:>8} "
+                f"{row['cardinality']:>9,}  {row['balance']}"
+            )
+        return lines
 
     def __str__(self) -> str:
-        lines = [self._header(), ""]
-        for level, label in (("error", "ERRORS"),
-                             ("warning", "WARNINGS"),
-                             ("info", "NOTES")):
-            group = [f for f in self.findings if f.severity == level]
-            if group:
-                lines.append(label)
-                lines.extend("  " + str(f) for f in group)
-                lines.append("")
+        lines = [self._header(), "", "FINDINGS"]
+        if self.findings:
+            lines.append(f"{'Severity':<9} {'Column':<20} {'Issue':<40} Suggested fix")
+            for f in self.findings:
+                lines.append(
+                    f"{f.severity:<9} {str(f.column)[:20]:<20} "
+                    f"{str(f.message)[:40]:<40} {f.suggestion}"
+                )
+        else:
+            lines.append("none, the data looks clean")
+        lines.append("")
+        if self.target_summary is not None and not self.target_summary.empty:
+            lines.append("TARGET")
+            lines.extend(self._target_text_table(self.target_summary))
+            lines.append("")
         lines.append("COLUMNS")
-        for _, row in self.summary.iterrows():
-            spark = self._sparklines.get(row["column"], "")
-            lines.append(
-                f"  {row['column'][:20]:<20} {row['dtype'][:7]:<7} "
-                f"{spark:<8} miss {row['missing_pct']:>4.0f}%  "
-                f"card {row['cardinality']:>6,}"
-            )
+        lines.extend(self._text_table(self.summary))
         return "\n".join(lines)
 
     def __repr__(self) -> str:
         return self.__str__()
 
+    def _html_summary_table(self, summary) -> str:
+        th = ("text-align:left;padding:3px 12px;border-bottom:1px solid #8884;"
+              "font-weight:600;color:#888;font-size:11px")
+        rows = ""
+        for _, r in summary.iterrows():
+            spark = self._sparklines.get(r["column"], "")
+            rows += (
+                "<tr>"
+                f'<td style="font-family:monospace;padding:2px 12px">{html.escape(str(r["column"]))}</td>'
+                f'<td style="padding:2px 12px;color:#888">{html.escape(str(r["dtype"]))}</td>'
+                f'<td style="font-family:monospace;padding:2px 12px">{spark}</td>'
+                f'<td style="padding:2px 12px">{r["missing_pct"]:.0f}%</td>'
+                f'<td style="padding:2px 12px">{r["cardinality"]:,}</td>'
+                "</tr>"
+            )
+        return (
+            '<table style="border-collapse:collapse;margin-bottom:12px">'
+            f'<thead><tr><th style="{th}">Column</th><th style="{th}">Type</th>'
+            f'<th style="{th}">Distribution</th><th style="{th}">Missing</th>'
+            f'<th style="{th}">Distinct</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table>'
+        )
+
+    def _target_html_table(self, summary) -> str:
+        th = ("text-align:left;padding:3px 12px;border-bottom:1px solid #8884;"
+              "font-weight:600;color:#888;font-size:11px")
+        rows = ""
+        for _, r in summary.iterrows():
+            rows += (
+                "<tr>"
+                f'<td style="font-family:monospace;padding:2px 12px">{html.escape(str(r["column"]))}</td>'
+                f'<td style="padding:2px 12px;color:#888">{html.escape(str(r["dtype"]))}</td>'
+                f'<td style="padding:2px 12px">{html.escape(str(r["inferred_role"]))}</td>'
+                f'<td style="padding:2px 12px">{r["missing_pct"]:.0f}%</td>'
+                f'<td style="padding:2px 12px">{r["cardinality"]:,}</td>'
+                f'<td style="padding:2px 12px">{html.escape(str(r["balance"]))}</td>'
+                "</tr>"
+            )
+        return (
+            '<table style="border-collapse:collapse;margin-bottom:12px">'
+            f'<thead><tr><th style="{th}">Column</th><th style="{th}">Type</th>'
+            f'<th style="{th}">Inferred Role</th><th style="{th}">Missing</th>'
+            f'<th style="{th}">Distinct</th><th style="{th}">Balance / shape</th>'
+            f'</tr></thead><tbody>{rows}</tbody></table>'
+        )
+
     def _repr_html_(self) -> str:
         colors = {"error": "#d33", "warning": "#e69500", "info": "#3a7"}
-        rows = ""
+        th = ("text-align:left;padding:3px 12px;border-bottom:1px solid #8884;"
+              "font-weight:600;color:#888;font-size:11px")
+
+        find_rows = ""
         for f in self.findings:
-            c = colors[f.severity]
-            sug = f" &rarr; {html.escape(f.suggestion)}" if f.suggestion else ""
-            rows += (
-                f'<tr><td style="color:{c};font-weight:600;padding:2px 10px">'
-                f'{f.severity}</td>'
-                f'<td style="font-family:monospace;padding:2px 10px">{html.escape(f.column)}</td>'
-                f'<td style="padding:2px 10px">{html.escape(f.message)}'
-                f'<span style="color:#888">{sug}</span></td></tr>'
+            c = colors.get(f.severity, "#888")
+            find_rows += (
+                "<tr>"
+                f'<td style="color:{c};font-weight:600;padding:2px 12px">{f.severity}</td>'
+                f'<td style="font-family:monospace;padding:2px 12px">{html.escape(str(f.column))}</td>'
+                f'<td style="padding:2px 12px">{html.escape(str(f.message))}</td>'
+                f'<td style="padding:2px 12px;color:#888">{html.escape(str(f.suggestion))}</td>'
+                "</tr>"
             )
-        if not rows:
-            rows = ('<tr><td colspan="3" style="padding:6px 10px;color:#3a7">'
-                    'no issues found \u2713</td></tr>')
-        cols = ""
-        for _, r in self.summary.iterrows():
-            spark = self._sparklines.get(r["column"], "")
-            cols += (
-                f'<tr><td style="font-family:monospace;padding:2px 10px">{html.escape(str(r["column"]))}</td>'
-                f'<td style="padding:2px 10px;color:#888">{html.escape(str(r["dtype"]))}</td>'
-                f'<td style="font-family:monospace;padding:2px 10px">{spark}</td>'
-                f'<td style="padding:2px 10px">{r["missing_pct"]:.0f}%</td>'
-                f'<td style="padding:2px 10px">{r["cardinality"]:,}</td></tr>'
+        if not find_rows:
+            find_rows = ('<tr><td colspan="4" style="padding:6px 12px;color:#3a7">'
+                         "no issues found \u2713</td></tr>")
+        findings_table = (
+            '<table style="border-collapse:collapse;margin-bottom:12px">'
+            f'<thead><tr><th style="{th}">Severity</th><th style="{th}">Column</th>'
+            f'<th style="{th}">Issue</th><th style="{th}">Suggested fix</th></tr></thead>'
+            f'<tbody>{find_rows}</tbody></table>'
+        )
+
+        target_html = ""
+        if self.target_summary is not None and not self.target_summary.empty:
+            target_html = (
+                '<div style="color:#888;font-size:11px;margin-bottom:2px">TARGET</div>'
+                + self._target_html_table(self.target_summary)
             )
+
         return f"""
 <div style="font-family:-apple-system,sans-serif;font-size:13px">
-  <div style="font-weight:600;margin-bottom:6px">{self._header()}</div>
-  <table style="border-collapse:collapse;margin-bottom:10px">{rows}</table>
+  <div style="font-weight:600;margin-bottom:8px">{self._header()}</div>
+  <div style="color:#888;font-size:11px;margin-bottom:2px">FINDINGS</div>
+  {findings_table}
+  {target_html}
   <div style="color:#888;font-size:11px;margin-bottom:2px">COLUMNS</div>
-  <table style="border-collapse:collapse">{cols}</table>
+  {self._html_summary_table(self.summary)}
 </div>"""
 
 
 # --------------------------------------------------------------------------- #
 # Public entry point
 # --------------------------------------------------------------------------- #
-def profiler(data, target: Optional[str] = None) -> ProfileReport:
+def profiler(data, target=None) -> ProfileReport:
     """Diagnose a DataFrame: rank its problems worst-first, with fixes.
 
     Parameters
@@ -495,8 +660,9 @@ def profiler(data, target: Optional[str] = None) -> ProfileReport:
     data
         A pandas or polars DataFrame (or anything convertible to one).
     target
-        Optional column name. When given, enables leakage and class-imbalance
-        checks against it.
+        Optional column name, or a list of names for multi-target frames.
+        Each target is set aside from the feature diagnostics and gets leakage
+        and class-imbalance checks run against it.
 
     Returns
     -------
@@ -507,39 +673,38 @@ def profiler(data, target: Optional[str] = None) -> ProfileReport:
     """
     df = _to_pandas(data)
 
-    target_series = None
-    if target is not None:
-        if target in df.columns:
-            target_series = df[target]
-            df = df.drop(columns=[target])
+    # Normalise target(s) to a list of names, then set them aside.
+    if target is None:
+        wanted = []
+    elif isinstance(target, str):
+        wanted = [target]
+    else:
+        wanted = list(target)
+
+    targets = {}
+    for name in wanted:
+        if name in df.columns:
+            targets[name] = df[name]
         else:
-            warnings.warn(f"target {target!r} not found in columns; ignoring",
+            warnings.warn(f"target {name!r} not found in columns; ignoring",
                           PercentifyWarning, stacklevel=2)
+    if targets:
+        df = df.drop(columns=list(targets))
 
     findings: list[Finding] = []
     for check in CHECKS:
         try:
-            findings.extend(check(df, target_series))
+            findings.extend(check(df, targets))
         except Exception as exc:  # a broken check must never sink the report
             warnings.warn(f"{check.__name__} failed: {exc}", PercentifyWarning, stacklevel=2)
 
     findings.sort(key=lambda f: (_SEVERITY_ORDER[f.severity], f.column))
 
-    # Per-column summary + sparklines for the numeric columns.
-    n = len(df)
-    summary_rows, sparks = [], {}
-    for col in df.columns:
-        summary_rows.append({
-            "column": col,
-            "dtype": str(df[col].dtype),
-            "missing_pct": float(df[col].isna().mean() * 100) if n else 0.0,
-            "cardinality": int(df[col].nunique(dropna=True)),
-        })
-        if pd.api.types.is_numeric_dtype(df[col]) and not pd.api.types.is_bool_dtype(df[col]):
-            sparks[col] = _sparkline(df[col])
-    summary = pd.DataFrame(summary_rows)
+    summary, sparks = _summarize(df)
+    target_summary = _summarize_target(targets) if targets else None
 
     return ProfileReport(
-        n_rows=n, n_cols=df.shape[1], findings=findings,
-        summary=summary, target=target, _sparklines=sparks,
+        n_rows=len(df), n_cols=df.shape[1], findings=findings,
+        summary=summary, target=list(targets), target_summary=target_summary,
+        _sparklines=sparks,
     )

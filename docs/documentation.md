@@ -81,7 +81,7 @@ report.to_frame()
 severity         code   column                          message                           suggestion
  warning     constant     plan          only one distinct value         drop, carries no information
  warning high_missing    spend                      50% missing                       impute or drop
- warning      id_like  user_id identifier-like (100/100 unique)                 drop before modeling
+ warning      id_like  user_id identifier-like (100/100 unique)          further diagnostic required
     info    imbalance <target> class 'Yes' is only 4.0% of rows consider resampling or class weights
 ```
 
@@ -92,7 +92,12 @@ The report renders as a compact, color-coded summary in notebooks and terminals,
 - `report.health`: a 0 to 100 score (100 is clean).
 - `assert not report.errors`: drop it straight into a CI data-quality gate.
 
-Pass `target=` to also check for **leakage** (features that predict the target almost perfectly) and class imbalance. Accepts pandas or polars input.
+Pass `target=` to also check for **leakage** (features that predict a target almost perfectly) and class imbalance. It accepts a single column name **or a list of names** for multi-target frames. Each target is set aside from the feature diagnostics and gets its own `TARGET` section showing its **inferred role** (classification or regression) and a **balance / shape** readout (the class balance for classification, the skew for regression), with the checks run against each. A numeric target that arrived as text (scattered values stored as strings) is coerced and read as regression, not mistaken for a giant class list. Accepts pandas or polars input.
+
+```python
+profiler(df, target="price")              # one target
+profiler(df, target=["price", "sold"])    # two targets, each set aside and checked
+```
 
 !!! example "Try it on your own data"
     Point `profiler()` at any messy dataset you have lying around, pandas or Polars, and read the findings top to bottom. It is the fastest way to see what to fix before you model.

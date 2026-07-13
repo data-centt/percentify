@@ -87,3 +87,109 @@ def test_profiler_polars_input(messy_df):
     report = profiler(pl.from_pandas(messy_df), target="churn")
     assert isinstance(report, ProfileReport)
     assert any(f.code == "all_missing" for f in report.errors)
+
+
+# ===== target visibility and list targets =====
+
+def test_profiler_single_target_visible():
+    np.random.seed(0)
+    df = pd.DataFrame({"a": np.random.randn(50), "b": np.random.randn(50), "target": np.random.randn(50)})
+    report = profiler(df, target="target")
+    assert report.target == ["target"]
+    assert "target" not in report.summary["column"].tolist()          # excluded from features
+    assert "target" in report.target_summary["column"].tolist()       # shown in TARGET section
+    assert "target: target" in str(report)                            # named in the header
+
+
+def test_profiler_accepts_target_list():
+    np.random.seed(0)
+    df = pd.DataFrame({
+        "a": np.random.randn(60),
+        "price": np.random.randn(60),
+        "label": np.random.choice(["x", "y"], 60),
+    })
+    report = profiler(df, target=["price", "label"])
+    assert report.target == ["price", "label"]
+    assert "price" not in report.summary["column"].tolist()
+    assert "label" not in report.summary["column"].tolist()
+    assert set(report.target_summary["column"]) == {"price", "label"}
+    assert "targets: price, label" in str(report)
+
+
+def test_profiler_multi_target_imbalance_names_target():
+    np.random.seed(0)
+    n = 400
+    df = pd.DataFrame({
+        "a": np.random.randn(n),
+        "y1": np.random.randn(n),                       # continuous, no imbalance
+        "y2": ["yes"] * 8 + ["no"] * (n - 8),           # 2% minority
+    })
+    infos = profiler(df, target=["y1", "y2"]).infos
+    assert any(f.code == "imbalance" and "y2" in f.column for f in infos)
+
+
+def test_profiler_no_target_has_no_target_summary():
+    report = profiler(pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}))
+    assert report.target == []
+    assert report.target_summary is None
+
+
+def test_profiler_polars_target_list():
+    pl = pytest.importorskip("polars")
+    np.random.seed(0)
+    df = pl.DataFrame({
+        "a": np.random.randn(60),
+        "price": np.random.randn(60),
+        "label": np.random.choice(["x", "y"], 60),
+    })
+    report = profiler(df, target=["price", "label"])
+    assert report.target == ["price", "label"]
+    assert set(report.target_summary["column"]) == {"price", "label"}
+    assert "price" not in report.summary["column"].tolist()
+
+
+def test_profiler_target_role_and_balance():
+    np.random.seed(0)
+    df = pd.DataFrame({
+        "a": np.random.randn(300),
+        "price": np.random.lognormal(10, 0.5, 300),   # many distinct -> regression
+        "sold": ["yes"] * 30 + ["no"] * 270,           # two classes -> classification
+    })
+    ts = profiler(df, target=["price", "sold"]).target_summary
+    role = dict(zip(ts["column"], ts["inferred_role"]))
+    balance = dict(zip(ts["column"], ts["balance"]))
+    assert role["price"] == "regression"
+    assert role["sold"] == "classification"
+    assert "skew" in balance["price"]        # regression reports skew
+    assert "ratio" in balance["sold"]        # classification reports the imbalance ratio
+    assert "majority" in balance["sold"]     # verbose: the top class is included
+
+
+def test_profiler_object_scattered_target_is_regression():
+    # Scattered continuous data that arrived as object/string must be scored as
+    # regression (via numeric coercion), not crash on .skew() or fall through
+    # to a meaningless class breakdown.
+    np.random.seed(0)
+    values = np.random.lognormal(8, 0.4, 300).round(2)
+    df = pd.DataFrame({
+        "a": np.random.randn(300),
+        "amount": pd.Series([str(v) for v in values], dtype=object),  # many distinct
+    })
+    assert df["amount"].dtype == object
+    ts = profiler(df, target="amount").target_summary
+    row = ts[ts["column"] == "amount"].iloc[0]
+    assert row["inferred_role"] == "regression"
+    assert "skew" in row["balance"]           # skew computed on the coerced numbers
+
+
+def test_profiler_object_highcardinality_text_target_no_crash():
+    # Genuinely non-numeric, high-cardinality text: must not crash and must not
+    # be summarised as a fake two-class imbalance.
+    df = pd.DataFrame({
+        "a": range(60),
+        "note": [f"free text {i}" for i in range(60)],   # 60 distinct, non-numeric
+    })
+    ts = profiler(df, target="note").target_summary
+    row = ts[ts["column"] == "note"].iloc[0]
+    assert "further diagnostic required" in row["balance"]
+    assert "majority" not in row["balance"]
