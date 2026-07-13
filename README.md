@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/data-centt/percentify/main/asset/log.png" alt="Percentify logo" height="150">
+  <img src="https://raw.githubusercontent.com/data-centt/percentify/main/asset/log.png" alt="Percentify logo" height="140">
 </p>
 
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
