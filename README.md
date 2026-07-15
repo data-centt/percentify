@@ -19,7 +19,7 @@ Exploratory stats and data-quality diagnostics for pandas and **Polars** DataFra
 
 Where a function wraps an existing library (pandas, scipy, statsmodels, scikit-learn), it names it, so you always know where to dig deeper.
 
-## ⭐ The flagship: `profiler`
+## ⭐  `profiler`
 
 **pandas `.describe()` tells you what your data _is_. `profiler()` tells you what to _do_ about it:** every issue ranked worst-first, each with its fix.
 
