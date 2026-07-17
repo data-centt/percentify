@@ -48,6 +48,17 @@ pip install percentify
 
 Requires Python 3.10+, `numpy`, and `pandas` 2.0+.
 
+## How to use percentify
+
+Import the function that matches the question you want to answer, pass in a pandas or Polars object, and use the returned DataFrame or scalar directly in your notebook, report, or pipeline.
+
+```python
+from percentify import missing, profiler
+
+missing(df)                  # quick column-level check
+profiler(df, target="churn")  # ranked data-quality issues and fixes
+```
+
 ## Quick example
 
 ```python
@@ -68,6 +79,11 @@ missing(df)
 ```
 
 One import, one line. A clean, sorted DataFrame you can read or feed into the next step.
+
+## Examples
+
+- [Worked examples for every function](https://data-centt.github.io/percentify/documentation/)
+- [Project documentation](https://data-centt.github.io/percentify/)
 
 ## What's inside
 
