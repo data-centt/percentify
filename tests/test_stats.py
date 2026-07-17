@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 import pandas as pd
 from percentify import (
-    change, vif, missing, cv, outliers, r_squared, pca_variance, PercentifyWarning
+    change, vif, missing, cv, outliers, pca_variance, pca_loadings, imbalance,
+    difference, split, display, PercentifyWarning,
 )
 
 
@@ -344,53 +345,6 @@ def test_outliers_custom_multiplier():
     assert outliers(s, multiplier=1.0) >= outliers(s, multiplier=3.0)
 
 
-# ===== r_squared =====
-
-def test_r_squared_perfect():
-    y = [1, 2, 3, 4, 5]
-    assert r_squared(y, y) == 100.0
-
-
-def test_r_squared_good_fit():
-    result = r_squared([1, 2, 3, 4, 5], [1.1, 1.9, 3.2, 3.8, 5.1])
-    assert 90 < result < 100
-
-
-def test_r_squared_bad_fit():
-    assert r_squared([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]) < 0
-
-
-def test_r_squared_with_numpy():
-    assert r_squared(np.array([1, 2, 3]), np.array([1, 2, 3])) == 100.0
-
-
-def test_r_squared_with_series():
-    result = r_squared(pd.Series([1, 2, 3, 4, 5]), pd.Series([1.1, 2.1, 2.9, 4.0, 5.1]))
-    assert result > 0
-
-
-def test_r_squared_mismatched_length():
-    with pytest.raises(ValueError):
-        r_squared([1, 2, 3], [1, 2])
-
-
-def test_r_squared_too_few():
-    with pytest.raises(ValueError):
-        r_squared([1], [1])
-
-
-def test_r_squared_non_numeric():
-    with pytest.raises(ValueError):
-        r_squared(["a", "b", "c"], ["a", "b", "c"])
-
-
-def test_r_squared_custom_decimals():
-    result = r_squared([1, 2, 3, 4, 5], [1.1, 1.9, 3.2, 3.8, 5.1], decimals=4)
-    parts = str(result).split(".")
-    if len(parts) == 2:
-        assert len(parts[1]) <= 4
-
-
 # ===== pca_variance =====
 
 def test_pca_variance_returns_dataframe(independent_df):
@@ -492,3 +446,227 @@ def test_pca_variance_standardize_all_constant_warns():
     with pytest.warns(PercentifyWarning):
         result = pca_variance(df)
     assert result.empty
+
+
+# ===== pca_loadings =====
+
+def test_pca_loadings_returns_dataframe(independent_df):
+    result = pca_loadings(independent_df)
+    assert isinstance(result, pd.DataFrame)
+    assert result.columns.tolist() == ["feature", "PC1", "PC2", "PC3"]
+
+
+def test_pca_loadings_feature_rows(independent_df):
+    assert set(pca_loadings(independent_df)["feature"]) == {"a", "b", "c"}
+
+
+def test_pca_loadings_columns_are_unit_norm(independent_df):
+    result = pca_loadings(independent_df, decimals=None)
+    for pc in ["PC1", "PC2", "PC3"]:
+        assert abs((result[pc] ** 2).sum() - 1.0) < 1e-9
+
+
+def test_pca_loadings_shared_signal_loads_together():
+    np.random.seed(1)
+    base = np.random.randn(200)
+    df = pd.DataFrame({
+        "a": base + np.random.randn(200) * 0.05,
+        "b": base + np.random.randn(200) * 0.05,   # shares a signal with a
+        "c": np.random.randn(200),                  # independent
+    })
+    load = dict(zip(pca_loadings(df)["feature"], pca_loadings(df)["PC1"]))
+    assert abs(load["a"]) > 0.5
+    assert abs(load["b"]) > 0.5
+    assert (load["a"] > 0) == (load["b"] > 0)   # a and b load with the same sign
+    assert abs(load["c"]) < 0.3
+
+
+def test_pca_loadings_n_components(independent_df):
+    result = pca_loadings(independent_df, n_components=2)
+    assert result.columns.tolist() == ["feature", "PC1", "PC2"]
+
+
+def test_pca_loadings_ignores_non_numeric():
+    np.random.seed(1)
+    df = pd.DataFrame({
+        "a": np.random.randn(50),
+        "b": np.random.randn(50),
+        "name": ["x"] * 50,
+    })
+    assert set(pca_loadings(df)["feature"]) == {"a", "b"}
+
+
+def test_pca_loadings_too_few_columns_warns():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    with pytest.warns(PercentifyWarning):
+        result = pca_loadings(df)
+    assert result.empty
+
+
+def test_pca_loadings_custom_decimals(independent_df):
+    for val in pca_loadings(independent_df, decimals=3)["PC1"]:
+        parts = str(float(val)).split(".")
+        if len(parts) == 2:
+            assert len(parts[1]) <= 3
+
+
+# ===== imbalance =====
+
+def test_imbalance_basic():
+    s = pd.Series(["No"] * 85 + ["Yes"] * 15)
+    result = imbalance(s)
+    assert list(result.columns) == ["class", "count", "pct"]
+    vals = dict(zip(result["class"], result["pct"]))
+    assert vals["No"] == 85.0
+    assert vals["Yes"] == 15.0
+
+
+def test_imbalance_counts():
+    result = imbalance(pd.Series(["No"] * 85 + ["Yes"] * 15))
+    vals = dict(zip(result["class"], result["count"]))
+    assert vals["No"] == 85
+    assert vals["Yes"] == 15
+
+
+def test_imbalance_sorted_descending():
+    s = pd.Series(["a"] * 10 + ["b"] * 50 + ["c"] * 40)
+    assert imbalance(s)["count"].tolist() == [50, 40, 10]
+
+
+def test_imbalance_summary_attrs():
+    s = pd.Series(["No"] * 850 + ["Yes"] * 150)
+    summary = imbalance(s).attrs["summary"]
+    assert summary["n_classes"] == 2
+    assert summary["majority_class"] == "No"
+    assert summary["minority_class"] == "Yes"
+    assert summary["imbalance_ratio"] == 5.67
+    assert abs(summary["entropy_pct"] - 61.0) < 0.5
+
+
+def test_imbalance_balanced():
+    s = pd.Series(["x"] * 50 + ["y"] * 50)
+    summary = imbalance(s).attrs["summary"]
+    assert summary["imbalance_ratio"] == 1.0
+    assert abs(summary["entropy_pct"] - 100.0) < 0.01
+
+
+def test_imbalance_ignores_nulls():
+    s = pd.Series(["a", "b", None, "a", None])
+    result = imbalance(s)
+    vals = dict(zip(result["class"], result["count"]))
+    assert vals["a"] == 2
+    assert vals["b"] == 1
+    assert result["count"].sum() == 3
+
+
+def test_imbalance_empty_warns():
+    with pytest.warns(PercentifyWarning):
+        result = imbalance(pd.Series([], dtype=object))
+    assert result.empty
+
+
+def test_imbalance_dataframe_raises():
+    with pytest.raises(TypeError):
+        imbalance(pd.DataFrame({"a": [1, 2]}))
+
+
+# ===== difference =====
+
+def test_difference_two_scalars():
+    assert difference(10, 20) == 66.67
+
+
+def test_difference_same():
+    assert difference(50, 50) == 0.0
+
+
+def test_difference_both_zero():
+    assert difference(0, 0) == 0.0
+
+
+def test_difference_order_independent():
+    assert difference(10, 20) == difference(20, 10)
+
+
+def test_difference_two_columns():
+    result = difference(pd.Series([10, 50, 100]), pd.Series([20, 50, 300]))
+    assert isinstance(result, pd.Series)
+    assert result.iloc[0] == 66.67
+    assert result.iloc[1] == 0.0
+    assert result.iloc[2] == 100.0
+
+
+def test_difference_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = difference(pd.Series(["a", "b"]), pd.Series([1, 2]))
+    assert result.isna().all()
+
+
+# ===== split =====
+
+def test_split_list():
+    assert split(200, [1, 3]) == [50.0, 150.0]
+
+
+def test_split_equal():
+    assert split(100, [1, 1, 1]) == [pytest.approx(33.33)] * 3
+
+
+def test_split_series_returns_series():
+    result = split(200, pd.Series([1, 3]))
+    assert isinstance(result, pd.Series)
+    assert result.tolist() == [50.0, 150.0]
+
+
+def test_split_series_preserves_index():
+    weights = pd.Series([1, 3], index=["a", "b"])
+    result = split(200, weights)
+    assert result["a"] == 50.0
+    assert result["b"] == 150.0
+
+
+def test_split_empty_raises():
+    with pytest.raises(ValueError):
+        split(100, [])
+
+
+def test_split_zero_sum_raises():
+    with pytest.raises(ValueError):
+        split(100, [0, 0])
+
+
+def test_split_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = split(100, pd.Series(["a", "b"]))
+    assert result.isna().all()
+
+
+# ===== display =====
+
+def test_display_scalar():
+    assert display(25.0) == "25.0%"
+
+
+def test_display_multiply():
+    assert display(0.45, multiply=True) == "45.0%"
+
+
+def test_display_custom_suffix():
+    assert display(50, suffix=" percent") == "50.0 percent"
+
+
+def test_display_series():
+    result = display(pd.Series([0.25, 0.5]), multiply=True)
+    assert isinstance(result, pd.Series)
+    assert result.tolist() == ["25.0%", "50.0%"]
+
+
+def test_display_series_no_multiply():
+    result = display(pd.Series([25.0, 33.3]))
+    assert result.tolist() == ["25.0%", "33.3%"]
+
+
+def test_display_non_numeric_warns():
+    with pytest.warns(PercentifyWarning):
+        result = display(pd.Series(["a", "b"]))
+    assert result.isna().all()
