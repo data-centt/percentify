@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/data-centt/percentify/main/asset/log.png" alt="Percentify logo" height="150">
 </p>
@@ -114,6 +113,3 @@ If your idea keeps things that simple and direct:
 - Create a branch
 - Commit your changes
 - Open a pull request
-
-> Anything that adds knobs and options for their own sake, or duplicates what the parent libraries already do well, is out of scope; those cases should point to the source library instead.
-I try to keep it compact on purpose, to discuss big new features first.
