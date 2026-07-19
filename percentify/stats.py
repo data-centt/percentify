@@ -892,6 +892,9 @@ def split(total, weights, decimals: Optional[int] = 2):
     shares = w.astype(float) / weight_sum * float(total)
     if decimals is not None:
         shares = shares.round(decimals)
+        remainder = round(float(total), decimals) - float(shares.sum())
+        if remainder:
+            shares.iloc[-1] = round(shares.iloc[-1] + remainder, decimals)
     return shares if is_series else shares.tolist()
 
 
