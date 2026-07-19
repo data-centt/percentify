@@ -35,11 +35,11 @@ assert not report.errors   # drop it straight into a CI data-quality gate
 
 Point it at any messy DataFrame, pandas or Polars, and see what it flags before you model. [Try it →](https://data-centt.github.io/percentify/documentation/#profiler)
 
-## 📖 Documentation
+# 📖 Documentation
 
-**Full guide and live examples → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
+**Full guides → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
 
-## 📦 Installation
+# 📦 Installation
 
 ```bash
 pip install percentify
@@ -79,12 +79,12 @@ missing(df)
 
 One import, one line. A clean, sorted DataFrame you can read or feed into the next step.
 
-## 🤝 Contributing
+# 🤝 Contributing
 
 Contributions are welcome, provided they align with the repository’s guiding principles. Please review the [contributing](https://github.com/data-centt/percentify/blob/main/CONTRIBUTING.md) guidelines before submitting.
 
 
-## More Examples
+# More Examples
 
 These are short, recipe-style examples that go beyond the one-liner above and are intentionally not covered in the [documentation](https://data-centt.github.io/percentify/documentation/). The docs show each function in isolation; these show how to chain them into a real workflow.
 
@@ -103,7 +103,7 @@ assert report.errors.empty, report.to_frame()
 assert report.health >= 80, f"health too low: {report.health}"
 ```
 
-### Rank correlations by significance
+#### Rank correlations by significance
 
 Pull the pairs that are both strong *and* unlikely to be noise:
 
@@ -121,7 +121,7 @@ df = pd.DataFrame({
 print(correlate(df).sort_values("p_value").head(5))
 ```
 
-### Build a transform pipeline from `skew_report`
+#### Build a transform pipeline from `skew_report`
 
 Let `skew_report` tell you what to apply, then apply it:
 
@@ -145,7 +145,7 @@ df["income_log"] = np.log1p(df["income"])     # numpy / pandas, not percentify
 df["visits_log"] = np.log1p(df["visits"])
 ```
 
-### Interpret PCA with both calls
+#### Interpret PCA with both calls
 
 Variance tells you *how much* of the signal each axis carries; loadings tell you *what it means*:
 
@@ -163,7 +163,7 @@ print(pca_variance(df))    # PC1 carries most of the variance
 print(pca_loadings(df))    # PC1 = (height, weight) with similar signs
 ```
 
-### Drop collinear columns before modelling
+#### Drop collinear columns before modelling
 
 Use `vif` with a threshold to get a drop-list you can feed straight into `df.drop`:
 
@@ -183,7 +183,7 @@ print(to_drop)                # e.g. ['cost', 'margin']
 clean = df.drop(columns=to_drop)
 ```
 
-### Month-over-month KPI table
+#### Month-over-month KPI table
 
 `change` over a DataFrame applies period-over-period growth to every numeric column at once:
 
@@ -202,7 +202,7 @@ print(change(kpis))
 - [Worked examples for every function](https://data-centt.github.io/percentify/documentation/)
 - [Project documentation](https://data-centt.github.io/percentify/)
 
-## What's inside
+# What's inside
 
 | Function | What it answers |
 |---|---|
