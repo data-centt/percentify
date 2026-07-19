@@ -231,4 +231,14 @@ print(change(kpis))
 
 ## 🤝 Contributing
 
-Contributions are welcome, provided they align with the repository’s guiding principles. Please review the [contributing](https://github.com/data-centt/percentify/blob/main/CONTRIBUTING.md) guidelines before submitting.
+Contributions are welcome but they must follow the repo's guiding principle:
+> Keep each method as direct-to-output as possible. A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
+
+**It must support polars.** Every function accepts both pandas and polars objects (via the `@_backend_aware` decorator) and returns the same kind, so any new contribution must keep that parity.
+
+If your idea keeps things that simple and direct:
+- Open an issue first to discuss it
+- Fork the repo
+- Create a branch
+- Commit your changes
+- Open a pull request
