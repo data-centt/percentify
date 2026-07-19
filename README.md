@@ -33,11 +33,11 @@ report.health              # a 0 to 100 data-health score
 assert not report.errors   # drop it straight into a CI data-quality gate
 ```
 
-Point it at any messy DataFrame, pandas or Polars, and see what it flags before you model. [Try it on your own data →](https://data-centt.github.io/percentify/documentation/#profiler)
+Point it at any messy DataFrame, pandas or Polars, and see what it flags before you model. [Try it →](https://data-centt.github.io/percentify/documentation/#profiler)
 
 ## 📖 Documentation
 
-**Full guide, every function, and live examples → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
+**Full guide and live examples → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
 
 ## 📦 Installation
 
@@ -79,7 +79,12 @@ missing(df)
 
 One import, one line. A clean, sorted DataFrame you can read or feed into the next step.
 
-## Examples
+## 🤝 Contributing
+
+Contributions are welcome, provided they align with the repository’s guiding principles. Please review the [contributing](https://github.com/data-centt/percentify/blob/main/CONTRIBUTING.md) guidelines before submitting.
+
+
+## More Examples
 
 These are short, recipe-style examples that go beyond the one-liner above and are intentionally not covered in the [documentation](https://data-centt.github.io/percentify/documentation/). The docs show each function in isolation; these show how to chain them into a real workflow.
 
@@ -220,15 +225,3 @@ print(change(kpis))
 | `display` | Format numbers or a column as clean "%" strings |
 
 → See the **[documentation](https://data-centt.github.io/percentify/)** for a worked, real-output example of every function.
-
-## 🛟 Friendly by design
-
-- **No cryptic tracebacks**; Hand a function a text column where numbers are needed and you get a clear PercentifyWarning, not an Arrow/NumPy stack trace.
-- **Sensible defaults**; Results come back sorted worst-first, and PCA is standardized out of the box.
-- **DataFrames everywhere**; so the output drops straight into your notebook, your next filter, or your model.
-- **Pandas or polars**; pass either a pandas or polars object and you get the same kind back, no flag needed.
-
-
-## 🤝 Contributing
-
-Contributions are welcome, provided they align with the repository’s guiding principles. Please review the [contributing](https://github.com/data-centt/percentify/blob/main/CONTRIBUTING.md) guidelines before submitting.
