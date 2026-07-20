@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/data-centt/percentify/main/asset/log.png" alt="Percentify logo" height="150">
+  <img src="https://raw.githubusercontent.com/data-centt/percentify/main/asset/log.png" alt="Percentify logo" height="140">
 </p>
 
 [![PyPI version](https://img.shields.io/pypi/v/percentify.svg?style=flat&color=blue)](https://pypi.org/project/percentify/)
@@ -33,13 +33,13 @@ report.health              # a 0 to 100 data-health score
 assert not report.errors   # drop it straight into a CI data-quality gate
 ```
 
-Point it at any messy DataFrame, pandas or Polars, and see what it flags before you model. [Try it on your own data →](https://data-centt.github.io/percentify/documentation/#profiler)
+Point it at any messy DataFrame, pandas or Polars, and see what it flags before you model. [Try it →](https://data-centt.github.io/percentify/documentation/#profiler)
 
-## 📖 Documentation
+# 📖 Documentation
 
-**Full guide, every function, and live examples → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
+**Full guides → [data-centt.github.io/percentify](https://data-centt.github.io/percentify/)**
 
-## 📦 Installation
+# 📦 Installation
 
 ```bash
 pip install percentify
@@ -79,7 +79,12 @@ missing(df)
 
 One import, one line. A clean, sorted DataFrame you can read or feed into the next step.
 
-## Examples
+# 🤝 Contributing
+
+Contributions are welcome, provided they align with the repository’s guiding principles. Please review the [contributing](https://github.com/data-centt/percentify/blob/main/CONTRIBUTING.md) guidelines before submitting.
+
+
+# More Examples
 
 These are short, recipe-style examples that go beyond the one-liner above and are intentionally not covered in the [documentation](https://data-centt.github.io/percentify/documentation/). The docs show each function in isolation; these show how to chain them into a real workflow.
 
@@ -98,7 +103,7 @@ assert report.errors.empty, report.to_frame()
 assert report.health >= 80, f"health too low: {report.health}"
 ```
 
-### Rank correlations by significance
+#### Rank correlations by significance
 
 Pull the pairs that are both strong *and* unlikely to be noise:
 
@@ -116,7 +121,7 @@ df = pd.DataFrame({
 print(correlate(df).sort_values("p_value").head(5))
 ```
 
-### Build a transform pipeline from `skew_report`
+#### Build a transform pipeline from `skew_report`
 
 Let `skew_report` tell you what to apply, then apply it:
 
@@ -140,7 +145,7 @@ df["income_log"] = np.log1p(df["income"])     # numpy / pandas, not percentify
 df["visits_log"] = np.log1p(df["visits"])
 ```
 
-### Interpret PCA with both calls
+#### Interpret PCA with both calls
 
 Variance tells you *how much* of the signal each axis carries; loadings tell you *what it means*:
 
@@ -158,7 +163,7 @@ print(pca_variance(df))    # PC1 carries most of the variance
 print(pca_loadings(df))    # PC1 = (height, weight) with similar signs
 ```
 
-### Drop collinear columns before modelling
+#### Drop collinear columns before modelling
 
 Use `vif` with a threshold to get a drop-list you can feed straight into `df.drop`:
 
@@ -178,7 +183,7 @@ print(to_drop)                # e.g. ['cost', 'margin']
 clean = df.drop(columns=to_drop)
 ```
 
-### Month-over-month KPI table
+#### Month-over-month KPI table
 
 `change` over a DataFrame applies period-over-period growth to every numeric column at once:
 
@@ -197,7 +202,7 @@ print(change(kpis))
 - [Worked examples for every function](https://data-centt.github.io/percentify/documentation/)
 - [Project documentation](https://data-centt.github.io/percentify/)
 
-## What's inside
+# What's inside
 
 | Function | What it answers |
 |---|---|
@@ -220,25 +225,3 @@ print(change(kpis))
 | `display` | Format numbers or a column as clean "%" strings |
 
 → See the **[documentation](https://data-centt.github.io/percentify/)** for a worked, real-output example of every function.
-
-## 🛟 Friendly by design
-
-- **No cryptic tracebacks**; Hand a function a text column where numbers are needed and you get a clear PercentifyWarning, not an Arrow/NumPy stack trace.
-- **Sensible defaults**; Results come back sorted worst-first, and PCA is standardized out of the box.
-- **DataFrames everywhere**; so the output drops straight into your notebook, your next filter, or your model.
-- **Pandas or polars**; pass either a pandas or polars object and you get the same kind back, no flag needed.
-
-
-## 🤝 Contributing
-
-Contributions are welcome but they must follow the repo's guiding principle:
-> Keep each method as direct-to-output as possible. A percentify function should return the single most common answer in one line, and point users to the underlying library (pandas, scipy, statsmodels, scikit-learn) for the full, configurable version when the simplest output isn't what they're after.
-
-**It must support polars.** Every function accepts both pandas and polars objects (via the `@_backend_aware` decorator) and returns the same kind, so any new contribution must keep that parity.
-
-If your idea keeps things that simple and direct:
-- Open an issue first to discuss it
-- Fork the repo
-- Create a branch
-- Commit your changes
-- Open a pull request
